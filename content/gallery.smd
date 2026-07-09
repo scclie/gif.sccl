@@ -1,0 +1,24 @@
+---
+.title = "gallery — gif.sccl.cc",
+.date = @date("2024-01-01T00:00:00"),
+.author = "sccl",
+.layout = "page.shtml",
+.custom = {
+    .tab = "gallery",
+    .description = "Public gallery of all GIFs created on gif.sccl.cc",
+},
+---
+
+```=html
+<div id="gallery-app">
+  <p class="section-id">> public gifs</p>
+  <div id="gallery-grid"></div>
+  <div id="gallery-empty" style="display:none">
+    <p>no gifs yet. <a href="/">create one</a></p>
+  </div>
+  <div id="gallery-loading"><p>loading...</p></div>
+  <div id="gallery-error" style="display:none"><p class="error-msg"></p></div>
+</div>
+
+<script src="/js/gallery.js"></script>
+```

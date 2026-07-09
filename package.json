@@ -1,0 +1,14 @@
+{
+  "name": "gifscclcc",
+  "type": "module",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "zine dev",
+    "build": "zine release --force",
+    "preview": "zine release && npx serve public"
+  },
+  "devDependencies": {
+    "gif.js": "^0.2.0"
+  }
+}
