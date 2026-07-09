@@ -40,6 +40,7 @@ export async function onRequestPost(context) {
       return json({ error: 'rate limit exceeded (' + maxLimit + '/' + label + '). try again in ' + retryAfter + 's' }, 429);
     }
 
+    await env.GIF_DB.prepare("ALTER TABLE gifs ADD COLUMN tags TEXT DEFAULT '[]'").run().catch(() => {});
     const id = crypto.randomUUID();
     const fileBuf = await gifFile.arrayBuffer();
 

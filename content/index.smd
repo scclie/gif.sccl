@@ -87,7 +87,7 @@
     <img id="gif-preview" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="generated gif preview">
     <div id="save-area">
       <label><input type="checkbox" id="chk-public" checked> make public</label>
-      <label>tags: <span id="tags-wrapper" style="display:inline-flex;flex-wrap:wrap;gap:.2rem;align-items:center;background:var(--nord0);border:1px solid var(--nord3);padding:.2rem .4rem;min-width:200px;cursor:text"><span id="tags-chips"></span><input type="text" id="opt-tags-input" placeholder="add tag..." style="border:none;background:transparent;color:var(--fg);font-family:Space Mono,monospace;font-size:.875rem;outline:none;width:80px;padding:0"><input type="hidden" id="opt-tags" value=""></span></label>
+      <label>tags: <span id="tags-wrapper" style="display:inline-flex;flex-wrap:wrap;gap:.2rem;align-items:center;background:var(--nord0);border:1px solid var(--nord3);padding:.2rem .4rem;min-width:200px;cursor:text"><span id="tags-chips"></span><input type="text" id="opt-tags-input" placeholder="add tag..." style="border:none;background:transparent;color:var(--fg);font-family:Space Mono,monospace;font-size:.875rem;outline:none;width:150px;padding:0"><input type="hidden" id="opt-tags" value=""></span></label>
       <span id="auth-prompt" class="hint"><a href="/api/auth/discord">login with discord</a> for higher limits (100/h)</span>
     </div>
     <div class="result-actions">

@@ -4,6 +4,7 @@ export async function onRequestPost(context) {
   const admin = context.data.admin;
 
   try {
+    await env.GIF_DB.prepare("ALTER TABLE gifs ADD COLUMN tags TEXT DEFAULT '[]'").run().catch(() => {});
     const body = await request.json();
     const id = body.id;
     const tagsRaw = (body.tags || '').trim();
