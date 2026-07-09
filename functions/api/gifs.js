@@ -15,11 +15,11 @@ export async function onRequestGet(context) {
     let query, countQuery, params;
 
     if (showAll && admin) {
-      query = 'SELECT id, created_at, size, public, discord_id FROM gifs ORDER BY created_at DESC LIMIT ? OFFSET ?';
+      query = 'SELECT id, created_at, size, public, discord_id, tags FROM gifs ORDER BY created_at DESC LIMIT ? OFFSET ?';
       countQuery = 'SELECT COUNT(*) as count FROM gifs';
       params = [limit, offset];
     } else {
-      query = 'SELECT id, created_at, size FROM gifs WHERE public = 1 ORDER BY created_at DESC LIMIT ? OFFSET ?';
+      query = 'SELECT id, created_at, size, tags FROM gifs WHERE public = 1 ORDER BY created_at DESC LIMIT ? OFFSET ?';
       countQuery = 'SELECT COUNT(*) as count FROM gifs WHERE public = 1';
       params = [limit, offset];
     }
@@ -31,6 +31,7 @@ export async function onRequestGet(context) {
       url: baseUrl + '/api/gif/' + r.id + '.gif',
       created_at: r.created_at,
       size: formatSize(r.size),
+      tags: JSON.parse(r.tags || '[]'),
       ...(showAll && admin ? { public: !!r.public, discord_id: r.discord_id } : {}),
     }));
 

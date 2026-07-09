@@ -87,6 +87,7 @@
     <img id="gif-preview" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="generated gif preview">
     <div id="save-area">
       <label><input type="checkbox" id="chk-public" checked> make public</label>
+      <label>tags: <input type="text" id="opt-tags" placeholder="funny, meme, edit" style="width:auto;background:var(--nord0);color:var(--fg);border:1px solid var(--nord3);padding:.2rem .4rem;font-family:Space Mono,monospace;font-size:.875rem"></label>
       <span id="auth-prompt" class="hint"><a href="/api/auth/discord">login with discord</a> for higher limits (100/h)</span>
     </div>
     <div class="result-actions">

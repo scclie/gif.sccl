@@ -10,6 +10,8 @@ export async function onRequestPost(context) {
     const formData = await request.formData();
     const gifFile = formData.get('gif');
     const isPublic = formData.get('public') === 'true';
+    const tagsRaw = (formData.get('tags') || '').trim();
+    const tags = tagsRaw ? JSON.stringify(tagsRaw.split(',').map(t => t.trim()).filter(Boolean)) : '[]';
 
     if (!gifFile || !(gifFile instanceof File)) {
       return json({ error: 'no gif file provided' }, 400);
@@ -97,7 +99,7 @@ export async function onRequestPost(context) {
     const ipHash = await hashIP(request.headers.get('CF-Connecting-IP') || 'unknown');
 
     await env.GIF_DB.prepare(
-      'INSERT INTO gifs (id, discord_id, ip_hash, public, created_at, size, delete_token, discord_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+      'INSERT INTO gifs (id, discord_id, ip_hash, public, created_at, size, delete_token, discord_url, tags) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
     ).bind(
       id,
       user ? user.discord_id : null,
@@ -106,7 +108,8 @@ export async function onRequestPost(context) {
       new Date().toISOString(),
       gifFile.size,
       deleteToken,
-      fileUrl
+      fileUrl,
+      tags
     ).run();
 
     rate.count++;
@@ -122,6 +125,7 @@ export async function onRequestPost(context) {
       delete_token: deleteToken,
       size: gifFile.size,
       public: isPublic,
+      tags: JSON.parse(tags),
     });
   } catch (err) {
     const msg = err.name === 'AbortError' ? 'upload to storage timed out' : err.message;
