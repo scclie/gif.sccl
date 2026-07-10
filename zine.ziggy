@@ -10,5 +10,7 @@ Site {
         "js/app.js",
         "js/gallery.js",
         "robots.txt",
+        "llms.txt",
+        "sitemap.xml",
     ],
 }

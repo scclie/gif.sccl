@@ -1,11 +1,11 @@
 ---
-.title = "gif.sccl.cc — minimal gif maker",
-.date = @date("2024-01-01T00:00:00"),
+.title = "gif.sccl.cc - anon minimal client-side gif maker",
+.date = @date("2026-10-07T00:00:00"),
 .author = "sccl",
 .layout = "page.shtml",
 .custom = {
     .tab = "home",
-    .description = "Create GIFs from videos and images. Free, client-side, no tracking. Direct links for Discord & Telegram.",
+    .description = "Create GIFs from videos and images. Free, no tracking. Direct permalinks for Discord & Telegram via Catbox CDN.",
 },
 ---
 
@@ -23,7 +23,11 @@
       <div id="trim-controls">
         <label>start: <input type="number" id="trim-start" min="0" step="0.1" value="0">s</label>
         <label>end: <input type="number" id="trim-end" min="0" step="0.1" value="0">s</label>
-        <input type="range" id="trim-range" min="0" max="100" value="0,100" style="width:100%">
+        <div class="dual-range">
+          <input type="range" id="trim-range-start" class="range-start" min="0" step="0.1" value="0">
+          <input type="range" id="trim-range-end" class="range-end" min="0" step="0.1" value="0">
+          <div class="range-track"><div class="range-fill" id="range-fill"></div></div>
+        </div>
       </div>
     </div>
     <div id="image-preview" style="display:none">
@@ -88,11 +92,13 @@
     <div id="save-area">
       <label><input type="checkbox" id="chk-public" checked> make public</label>
       <label>tags: <span id="tags-wrapper" style="display:inline-flex;flex-wrap:wrap;gap:.2rem;align-items:center;background:var(--nord0);border:1px solid var(--nord3);padding:.2rem .4rem;min-width:200px;cursor:text"><span id="tags-chips"></span><input type="text" id="opt-tags-input" placeholder="add tag..." style="border:none;background:transparent;color:var(--fg);font-family:Space Mono,monospace;font-size:.875rem;outline:none;width:150px;padding:0"><input type="hidden" id="opt-tags" value=""></span></label>
-      <span id="auth-prompt" class="hint"><a href="/api/auth/discord">login with discord</a> for higher limits (100/h)</span>
     </div>
     <div class="result-actions">
       <button id="btn-save" class="btn">[ get permanent link ]</button>
       <button id="btn-download" class="btn">[ download ]</button>
+    </div>
+    <div>
+    <span id="auth-prompt" class="hint"><a href="/api/auth/discord">login with discord</a> for higher permalink limits (30/h)</span>
     </div>
     <div id="save-result" style="display:none">
       <p>permanent url: <a id="gif-url"></a></p>

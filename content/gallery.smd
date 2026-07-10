@@ -1,6 +1,6 @@
 ---
 .title = "gallery — gif.sccl.cc",
-.date = @date("2024-01-01T00:00:00"),
+.date = @date("2026-10-07T00:00:00"),
 .author = "sccl",
 .layout = "page.shtml",
 .custom = {
@@ -11,6 +11,10 @@
 
 ```=html
 <div id="gallery-app">
+  <div id="user-gallery-section" style="display:none">
+    <p class="section-id">> my gifs</p>
+    <div id="user-gallery-grid"></div>
+  </div>
   <p class="section-id">> public gifs</p>
   <div id="gallery-grid"></div>
   <div id="gallery-empty" style="display:none">

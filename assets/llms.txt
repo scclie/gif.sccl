@@ -1,0 +1,26 @@
+# gif.sccl.cc — minimal client-side GIF maker
+> Create animated GIFs from videos and images entirely in your browser. Free, no tracking, no uploads. Direct permalinks for Discord & Telegram via Catbox CDN.
+
+## Pages
+
+- [Home](https://gif.sccl.cc/): GIF maker — drag-and-drop videos/images, crop, trim, customize colors/fps/quality/dithering, preview, download, and get a permanent link.
+- [Gallery](https://gif.sccl.cc/gallery/): Public gallery of all GIFs created on gif.sccl.cc — browse, filter by tags, copy URLs, delete own GIFs (with token).
+
+## API
+
+- `GET /api/gifs?page=1&limit=24`: List public GIFs (JSON, paginated). Admin can use `?all=true` to see all GIFs including non-public ones.
+- `POST /api/upload`: Upload an encoded GIF (multipart: `gif` file, `public` bool, `tags` comma-separated). Returns `{id, url, delete_token}`.
+- `GET /api/gif/{id}.gif`: Redirect (302) to Catbox CDN URL for a GIF.
+- `POST /api/delete`: Delete a GIF by `id` + `delete_token`. Admin can delete without token.
+- `POST /api/gif/edit`: Edit tags on a GIF. Body: `id`, `tags`, `delete_token`.
+- `GET /api/auth/me`: Return current user info + admin status.
+- `GET /api/auth/discord`: Redirect to Discord OAuth2 for login.
+- `POST /api/auth/logout`: Destroy session.
+
+## Tech Stack
+
+- **Framework**: [Zine](https://github.com/causal-agent/zine) static site generator (Zig)
+- **Hosting**: Cloudflare Pages + Cloudflare Workers (Functions)
+- **Database**: Cloudflare D1 (SQLite) for GIF metadata; Cloudflare KV for sessions
+- **CDN**: Catbox.moe for GIF file storage
+- **Auth**: Discord OAuth2
