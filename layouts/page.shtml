@@ -75,8 +75,12 @@
       </div>
       <div class="card-footer">
         <span :text="$page.custom.get('tab').suffix('.smd')"></span>
-        <a href="https://zine-ssg.io" class="zine-credit" target="_blank">built with zig zine</a>
-        <span class="symbol">[ctrl+c]</span>
+        <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap">
+          <a href="https://github.com/scclie/gif.sccl" class="zine-credit" target="_blank">source</a>
+          <a href="https://zine-ssg.io" class="zine-credit" target="_blank">built with zig zine</a>
+          <a href="https://catbox.moe" class="zine-credit" target="_blank">cutest file host - catbox.moe</a>
+        </div>
+        <a href="https://sccl.cc" class="symbol" target="_blank" style="text-decoration:none">sccl.cc</a>
       </div>
     </div>
   </main>

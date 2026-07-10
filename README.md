@@ -12,7 +12,7 @@ Minimal GIF maker - client-side encoding, no tracking.
 - **Stack**: [Zine SSG](https://zine-ssg.io) + Cloudflare Pages (Workers, D1, KV)
 - **GIF encoder**: [gif.js](https://github.com/jnordberg/gif.js) (client-side, no server CPU)
 - **Auth**: Discord OAuth (first user becomes admin)
-- **Storage**: [Catbox.moe](https://catbox.moe) (anonymous, 20MB/git)
+- **Storage**: [Catbox.moe](https://catbox.moe) (cute, anonymous, 20MB/gif)
 
 ## Setup
 
