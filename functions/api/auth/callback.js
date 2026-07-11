@@ -62,16 +62,17 @@ export async function onRequestGet(context) {
       discord_id: userData.id,
       username: userData.global_name || userData.username,
       avatar: userData.avatar,
+      admin: isAdmin || !!(await env.SESSIONS.get('admin:user:' + userData.id)),
       created_at: new Date().toISOString(),
     };
 
-    await env.SESSIONS.put('sess:' + sessId, JSON.stringify(session), { expirationTtl: 86400 });
+    await env.SESSIONS.put('sess:' + sessId, JSON.stringify(session), { expirationTtl: 604800 });
 
     return new Response(null, {
       status: 302,
       headers: {
         Location: '/',
-        'Set-Cookie': 'gif_session=' + sessId + '; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=86400',
+        'Set-Cookie': 'gif_session=' + sessId + '; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=604800',
       },
     });
   } catch (err) {

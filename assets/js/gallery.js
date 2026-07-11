@@ -15,9 +15,11 @@ var localTokens={};try{localTokens=JSON.parse(localStorage.getItem('gif_tokens')
 var ownIds={}; // IDs owned by current user (populated by ?tokens= fetch)
 
 // Check auth
-fetch('/api/auth/me',{credentials:'same-origin'}).then(function(r){return r.json()}).then(function(d){
-  if(d.admin){isAdmin=true;addAdminToggle()}
-}).catch(function(){})
+var cachedUser=localStorage.getItem('gif_user');
+var cachedAdmin=localStorage.getItem('gif_admin')==='1';
+if(cachedUser){try{var u=JSON.parse(cachedUser);if(u&&u.discord_id&&cachedAdmin){isAdmin=true;addAdminToggle()}}catch(e){}}
+var lastCheck=parseInt(localStorage.getItem('gif_auth_check')||'0');
+if(Date.now()-lastCheck<3600000){}else{fetch('/api/auth/me',{credentials:'same-origin'}).then(function(r){return r.json()}).then(function(d){if(d.admin&&!isAdmin){isAdmin=true;addAdminToggle()}}).catch(function(){})}
 
 function addAdminToggle(){
   var nav=document.querySelector('.nav');
@@ -62,7 +64,7 @@ function loadGifs(){
 
 function addGif(g){
   var item=document.createElement('div');item.className='gallery-item';
-  var img=document.createElement('a');img.href=g.url;img.target='_blank';img.innerHTML='<img src="'+g.direct_url+'" alt="gif" loading="lazy">';
+  var img=document.createElement('a');img.href=g.direct_url;img.target='_blank';img.innerHTML='<img src="'+g.direct_url+'" alt="gif" loading="lazy">';
   var info=document.createElement('div');info.className='gif-info';
   var infoText=g.size;
   if(g.public!==undefined)infoText+=g.public?' · public':' · private';

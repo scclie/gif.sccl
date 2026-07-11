@@ -29,26 +29,30 @@ export async function onRequestPost(context) {
     }
 
     const rateLimitKey = user
-      ? "rate:user:" + user.discord_id
-      : "rate:ip:" + (request.headers.get("CF-Connecting-IP") || "unknown");
+      ? "user:" + user.discord_id
+      : "ip:" + (request.headers.get("CF-Connecting-IP") || "unknown");
     const isAnon = !user;
     const maxLimit = isAnon
       ? parseInt(env.ANON_RATE_LIMIT) || 5
       : parseInt(env.USER_RATE_LIMIT) || 30;
     const windowMs = isAnon ? 86400000 : 3600000;
 
-    const rateData = await env.SESSIONS.get(rateLimitKey);
-    const now = Date.now();
-    let rate = rateData
-      ? JSON.parse(rateData)
-      : { count: 0, resetAt: now + windowMs };
+    await env.GIF_DB.prepare(
+      "CREATE TABLE IF NOT EXISTS upload_rate_limits (key TEXT PRIMARY KEY, count INTEGER DEFAULT 0, reset_at INTEGER)"
+    ).run().catch(() => {});
 
-    if (now > rate.resetAt) {
-      rate = { count: 0, resetAt: now + windowMs };
+    const now = Date.now();
+    const row = await env.GIF_DB.prepare(
+      "SELECT count, reset_at FROM upload_rate_limits WHERE key = ?"
+    ).bind(rateLimitKey).first();
+
+    let rate = row || { count: 0, reset_at: now + windowMs };
+    if (now > rate.reset_at) {
+      rate = { count: 0, reset_at: now + windowMs };
     }
 
     if (rate.count >= maxLimit) {
-      const retryAfter = Math.ceil((rate.resetAt - now) / 1000);
+      const retryAfter = Math.ceil((rate.reset_at - now) / 1000);
       const label = isAnon ? "daily" : "hourly";
       return json(
         {
@@ -179,9 +183,9 @@ export async function onRequestPost(context) {
       .run();
 
     rate.count++;
-    await env.SESSIONS.put(rateLimitKey, JSON.stringify(rate), {
-      expirationTtl: Math.ceil((rate.resetAt - now) / 1000),
-    });
+    await env.GIF_DB.prepare(
+      "INSERT INTO upload_rate_limits (key, count, reset_at) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET count = ?, reset_at = ?"
+    ).bind(rateLimitKey, rate.count, rate.reset_at, rate.count, rate.reset_at).run();
 
     const requestUrl = new URL(request.url);
     const baseUrl = requestUrl.protocol + "//" + requestUrl.host;

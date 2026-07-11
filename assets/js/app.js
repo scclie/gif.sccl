@@ -64,7 +64,18 @@ function resetDefaults(){
   document.getElementById('opt-dither').value='FloydSteinberg';
   tagList=[];renderTags()}
 
-function checkAuth(){fetch('/api/auth/me',{credentials:'same-origin'}).then(function(r){return r.json()}).then(function(d){if(d.user){user=d.user;if(AP)AP.style.display='none'}}).catch(function(){})}
+function checkAuth(){
+  var cached=localStorage.getItem('gif_user');
+  if(cached){try{user=JSON.parse(cached);if(AP)AP.style.display='none'}catch(e){}}
+  var last=parseInt(localStorage.getItem('gif_auth_check')||'0');
+  var now=Date.now();
+  if(now-last<3600000)return;
+  localStorage.setItem('gif_auth_check',now);
+  fetch('/api/auth/me',{credentials:'same-origin'}).then(function(r){return r.json()}).then(function(d){
+    if(d.user){user=d.user;localStorage.setItem('gif_user',JSON.stringify(d.user));if(AP)AP.style.display='none'}
+    else{user=null;localStorage.removeItem('gif_user')}
+  }).catch(function(){})
+}
 
 function handleFiles(files){ERR.style.display='none';var arr=Array.from(files);var vf=arr.find(function(f){return f.type.startsWith('video/')});if(vf){originalBaseName=vf.name.replace(/\.[^.]+$/,'');loadVideo(vf);return}
 var imf=arr.filter(function(f){return f.type.startsWith('image/')});if(imf.length>0){originalBaseName=imf[0].name.replace(/\.[^.]+$/,'');loadImages(imf);return}

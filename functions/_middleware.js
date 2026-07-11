@@ -40,9 +40,14 @@ async function onRequest(context) {
       const sess = await env.SESSIONS.get('sess:' + match[1]);
       if (sess) {
         user = JSON.parse(sess);
-        context.waitUntil(env.SESSIONS.put('sess:' + match[1], sess, { expirationTtl: 86400 }));
-        const adminFlag = await env.SESSIONS.get('admin:user:' + user.discord_id);
-        admin = !!adminFlag;
+        const age = Date.now() - new Date(user.created_at).getTime();
+        if (age > 6 * 3600 * 1000) {
+          user.created_at = new Date().toISOString();
+          const adminFlag = await env.SESSIONS.get('admin:user:' + user.discord_id);
+          user.admin = !!adminFlag;
+          context.waitUntil(env.SESSIONS.put('sess:' + match[1], JSON.stringify(user), { expirationTtl: 604800 }));
+        }
+        admin = !!user.admin;
       }
     } catch (_) {}
   }
