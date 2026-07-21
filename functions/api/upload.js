@@ -38,13 +38,17 @@ export async function onRequestPost(context) {
     const windowMs = isAnon ? 86400000 : 3600000;
 
     await env.GIF_DB.prepare(
-      "CREATE TABLE IF NOT EXISTS upload_rate_limits (key TEXT PRIMARY KEY, count INTEGER DEFAULT 0, reset_at INTEGER)"
-    ).run().catch(() => {});
+      "CREATE TABLE IF NOT EXISTS upload_rate_limits (key TEXT PRIMARY KEY, count INTEGER DEFAULT 0, reset_at INTEGER)",
+    )
+      .run()
+      .catch(() => {});
 
     const now = Date.now();
     const row = await env.GIF_DB.prepare(
-      "SELECT count, reset_at FROM upload_rate_limits WHERE key = ?"
-    ).bind(rateLimitKey).first();
+      "SELECT count, reset_at FROM upload_rate_limits WHERE key = ?",
+    )
+      .bind(rateLimitKey)
+      .first();
 
     let rate = row || { count: 0, reset_at: now + windowMs };
     if (now > rate.reset_at) {
@@ -133,7 +137,7 @@ export async function onRequestPost(context) {
         return json(
           {
             error:
-              "upload failed: catbox blocks anonymous uploads. Set CATBOX_USERHASH secret.",
+              "upload failed: catbox blocks anonymous uploads. Notify admin.",
           },
           500,
         );
@@ -141,14 +145,15 @@ export async function onRequestPost(context) {
       if (catboxMsg === "Not signed in!" && env.CATBOX_USERHASH) {
         return json(
           {
-            error:
-              "upload failed: invalid CATBOX_USERHASH. Double-check the hash.",
+            error: "upload failed: invalid CATBOX_USERHASH. Notify admin.",
           },
           500,
         );
       }
       return json(
-        { error: "catbox error (HTTP " + catboxResp.status + "): " + catboxMsg },
+        {
+          error: "catbox error (HTTP " + catboxResp.status + "): " + catboxMsg,
+        },
         500,
       );
     }
@@ -185,8 +190,10 @@ export async function onRequestPost(context) {
 
     rate.count++;
     await env.GIF_DB.prepare(
-      "INSERT INTO upload_rate_limits (key, count, reset_at) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET count = ?, reset_at = ?"
-    ).bind(rateLimitKey, rate.count, rate.reset_at, rate.count, rate.reset_at).run();
+      "INSERT INTO upload_rate_limits (key, count, reset_at) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET count = ?, reset_at = ?",
+    )
+      .bind(rateLimitKey, rate.count, rate.reset_at, rate.count, rate.reset_at)
+      .run();
 
     const requestUrl = new URL(request.url);
     const baseUrl = requestUrl.protocol + "//" + requestUrl.host;

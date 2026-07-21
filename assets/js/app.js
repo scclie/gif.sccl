@@ -18,7 +18,7 @@ var BC=document.getElementById('btn-create');
 var PROG=document.getElementById('progress');
 var PP=document.getElementById('progress-pct');
 var PF=document.getElementById('progress-fill');
-var RES=document.getElementById('result');
+var RES=document.getElementById('result');var GS=document.getElementById('gif-size');
 var GP=document.getElementById('gif-preview');
 var BD=document.getElementById('btn-download');
 var SAV=document.getElementById('save-area');
@@ -61,7 +61,7 @@ function resetDefaults(){
   document.getElementById('chk-public').checked=true;
   document.getElementById('opt-tags-input').value='';
   document.getElementById('opt-tags').value='';
-  document.getElementById('opt-dither').value='FloydSteinberg';
+  document.getElementById('opt-dither').value='';
   tagList=[];renderTags()}
 
 function checkAuth(){
@@ -154,6 +154,8 @@ PROG.style.display='block';RES.style.display='none';ERR.style.display='none';SR.
 var gif=new GIF({workers:2,quality:quality,width:width,workerScript:'/js/gif.worker.js',dither:dither,colors:colors,repeat:repeat})
 gif.on('progress',function(p){var pct=Math.round(p*100);PP.textContent=pct+'%';PF.style.width=pct+'%'})
 gif.on('finished',function(blob){currentGifBlob=blob;GP.src=URL.createObjectURL(blob);RES.style.display='block';PROG.style.display='none';BC.disabled=false
+var sz=blob.size;GS.textContent=sz>=1048576?(sz/1048576).toFixed(1)+' MB':(sz/1024).toFixed(0)+' KB';
+GS.textContent+=sz>5242880?'\nyou can try reducing the weight by lowering resolution / number of colors / fps. for smoother gradients try dithering':''
 BD.onclick=function(){var a=document.createElement('a');a.href=GP.src;a.download='gif.sccl.cc-'+originalBaseName+'.gif';a.click()}
 })
 if(inputType==='video')addVideoFrames(gif,fps)

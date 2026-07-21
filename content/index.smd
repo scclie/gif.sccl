@@ -68,8 +68,9 @@
       </label>
       <label>dithering
         <select id="opt-dither">
-          <option value="FloydSteinberg">floyd-steinberg</option>
           <option value="">none</option>
+          <option value="Bayer">bayer</option>
+          <option value="FloydSteinberg">floyd-steinberg</option>
         </select>
       </label>
       <label>quality <input type="number" id="opt-quality" min="1" max="20" value="10">(lower=better)</label>
@@ -89,6 +90,7 @@
   <div id="result" style="display:none">
     <p class="section-title">preview</p>
     <img id="gif-preview" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="generated gif preview">
+    <p class="hint" id="gif-size"></p>
     <div id="save-area">
       <label><input type="checkbox" id="chk-public" checked> make public</label>
       <label>tags: <span id="tags-wrapper" style="display:inline-flex;flex-wrap:wrap;gap:.2rem;align-items:center;background:var(--nord0);border:1px solid var(--nord3);padding:.2rem .4rem;min-width:200px;cursor:text"><span id="tags-chips"></span><input type="text" id="opt-tags-input" placeholder="add tag..." style="border:none;background:transparent;color:var(--fg);font-family:Space Mono,monospace;font-size:.875rem;outline:none;width:150px;padding:0"><input type="hidden" id="opt-tags" value=""></span></label>
