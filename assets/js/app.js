@@ -201,6 +201,6 @@ function renderTags(){
     chip.appendChild(rm);tagsChips.appendChild(chip)});
   tagsHidden.value=tagList.join(',')}
 if(tagsInput)tagsInput.addEventListener('keydown',function(e){
-  if(e.key===' '||e.key==='Enter'||e.key===','){e.preventDefault();var val=tagsInput.value.trim();if(val&&tagList.indexOf(val)===-1){tagList.push(val);renderTags()};tagsInput.value=''}
+  if(e.key===' '||e.key==='Enter'||e.key===','){e.preventDefault();var val=tagsInput.value.trim().slice(0,30);if(val&&tagList.indexOf(val)===-1&&tagList.length<10){tagList.push(val);renderTags()};tagsInput.value=''}
   if(e.key==='Backspace'&&tagsInput.value===''&&tagList.length){tagList.pop();renderTags()}})
 resetDefaults();checkAuth()})();

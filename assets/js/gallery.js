@@ -32,7 +32,7 @@ function addAdminToggle(){
     showAll=this.checked;reset();loadGifs()})}
 
 function reset(){grid.innerHTML='';userGrid.innerHTML='';userSection.style.display='none';page=1;hasMore=true;loadingFlag=false;ownIds={}
-  var ft=document.getElementById('gallery-footer');if(ft)ft.remove()}
+  var ft=document.getElementById('gallery-footer');if(ft)ft.innerHTML=''}
 
 function start(){
   var tokens=Object.keys(localTokens);
@@ -72,19 +72,21 @@ function addGif(g){
   info.textContent=infoText;
   var tagsEl=document.createElement('div');tagsEl.className='gif-tags';
   if(g.tags&&g.tags.length)tagsEl.innerHTML=g.tags.map(function(t){return'<span class="tag">'+esc(t)+'</span>'}).join('');
+  var btnRow=document.createElement('div');btnRow.className='btn-row';
   var copyBtn=document.createElement('button');copyBtn.className='btn';copyBtn.textContent='[ copy url ]';
   copyBtn.addEventListener('click',function(){
     navigator.clipboard.writeText(g.url).then(function(){copyBtn.textContent='copied!';setTimeout(function(){copyBtn.textContent='[ copy url ]'},1500)}).catch(function(){})});
-  item.appendChild(img);item.appendChild(info);item.appendChild(tagsEl);item.appendChild(copyBtn);
-  if(isAdmin||localTokens[g.id])addOwnButtons(g,item,copyBtn)
+  btnRow.appendChild(copyBtn);
+  item.appendChild(img);item.appendChild(info);item.appendChild(tagsEl);item.appendChild(btnRow);
+  if(isAdmin||localTokens[g.id])addOwnButtons(g,item,btnRow)
   if(ownIds[g.id]||localTokens[g.id]){userGrid.appendChild(item);userSection.style.display='block'}else{grid.appendChild(item)}}
 
-function addOwnButtons(g,item,copyBtn){
-  var editBtn=document.createElement('button');editBtn.className='btn own-btn';editBtn.style.cssText='margin-left:0.4rem;font-size:0.7rem;padding:0.2rem 0.4rem';
+function addOwnButtons(g,item,btnRow){
+  var editBtn=document.createElement('button');editBtn.className='btn own-btn';editBtn.style.cssText='font-size:0.7rem;padding:0.2rem 0.4rem';
   editBtn.textContent='[edit]';
   editBtn.onclick=function(){editTags(g,editBtn,item)};
-  copyBtn.parentNode.insertBefore(editBtn,copyBtn.nextSibling)
-  var delBtn=document.createElement('button');delBtn.className='btn own-btn';delBtn.style.cssText='margin-left:0.4rem;border-color:var(--nord11);color:var(--nord11);font-size:0.7rem;padding:0.2rem 0.4rem';
+  btnRow.appendChild(editBtn);
+  var delBtn=document.createElement('button');delBtn.className='btn own-btn';delBtn.style.cssText='border-color:var(--nord11);color:var(--nord11);font-size:0.7rem;padding:0.2rem 0.4rem';
   delBtn.textContent='[x]';
   delBtn.addEventListener('click',function(){
     if(!confirm('delete this gif?'))return;
@@ -92,16 +94,16 @@ function addOwnButtons(g,item,copyBtn){
       .then(function(r){return r.json()}).then(function(d){
         if(d.success){item.remove()}else{delBtn.textContent='failed'}})
       .catch(function(){delBtn.textContent='error'})});
-  copyBtn.parentNode.insertBefore(delBtn,copyBtn.nextSibling)}
+  btnRow.appendChild(delBtn)}
 
 function updateFooter(){
+  var app=document.getElementById('gallery-app');
   var footer=document.getElementById('gallery-footer');
-  if(!footer){footer=document.createElement('div');footer.id='gallery-footer';footer.style.cssText='text-align:center;margin-top:1rem'}
+  if(!footer){footer=document.createElement('div');footer.id='gallery-footer';footer.style.cssText='text-align:center;margin-top:1rem';app.appendChild(footer)}
   if(hasMore){
-    footer.innerHTML='<button id="load-more">[ load more ]</button>';
-    document.getElementById('load-more').addEventListener('click',loadGifs)}
-  else{footer.innerHTML='<span class="hint">all gifs loaded</span>'}
-  if(footer.parentNode!==document.getElementById('gallery-app'))document.getElementById('gallery-app').appendChild(footer)}
+    footer.innerHTML='<button class="load-more">[ load more ]</button>';
+    footer.querySelector('.load-more').addEventListener('click',loadGifs)}
+  else{footer.innerHTML='<span class="hint">all gifs loaded</span>'}}
 
 empty.style.display='none';
 
@@ -125,7 +127,7 @@ function editTags(g,btn,item){
       chip.appendChild(rm);chips.appendChild(chip)})}
   renderChips();
   input.addEventListener('keydown',function(e){
-    if(e.key===' '||e.key==='Enter'||e.key===','){e.preventDefault();var val=input.value.trim();if(val&&tagList.indexOf(val)===-1){tagList.push(val);renderChips()};input.value=''}
+    if(e.key===' '||e.key==='Enter'||e.key===','){e.preventDefault();var val=input.value.trim().slice(0,30);if(val&&tagList.indexOf(val)===-1&&tagList.length<10){tagList.push(val);renderChips()};input.value=''}
     if(e.key==='Backspace'&&input.value===''&&tagList.length){tagList.pop();renderChips()}})
   btn.textContent='[save]';
   btn.onclick=function(){

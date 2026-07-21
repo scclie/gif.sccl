@@ -11,14 +11,14 @@ export async function onRequestPost(context) {
     const gifFile = formData.get("gif");
     const isPublic = formData.get("public") === "true";
     const tagsRaw = (formData.get("tags") || "").trim();
-    const tags = tagsRaw
-      ? JSON.stringify(
-          tagsRaw
-            .split(",")
-            .map((t) => t.trim())
-            .filter(Boolean),
-        )
-      : "[]";
+    const tagsList = tagsRaw
+      ? tagsRaw
+          .split(",")
+          .map((t) => t.trim().slice(0, 30))
+          .filter(Boolean)
+          .slice(0, 10)
+      : [];
+    const tags = JSON.stringify(tagsList);
 
     if (!gifFile || !(gifFile instanceof File)) {
       return json({ error: "no gif file provided" }, 400);
@@ -125,38 +125,39 @@ export async function onRequestPost(context) {
     });
     clearTimeout(timeout);
 
+    const catboxText = await catboxResp.text();
+    const catboxMsg = catboxText.trim().slice(0, 300);
+
     if (!catboxResp.ok) {
-      const txt = await catboxResp.text();
-      const msg = txt.trim().slice(0, 200);
-      if (msg === "Invalid uploader" && !env.CATBOX_USERHASH) {
+      if (catboxMsg === "Invalid uploader" && !env.CATBOX_USERHASH) {
         return json(
           {
             error:
-              "upload failed: catbox blocks anonymous uploads. Set CATBOX_USERHASH secret with your catbox account hash.",
+              "upload failed: catbox blocks anonymous uploads. Set CATBOX_USERHASH secret.",
           },
           500,
         );
       }
-      if (msg === "Not signed in!" && env.CATBOX_USERHASH) {
+      if (catboxMsg === "Not signed in!" && env.CATBOX_USERHASH) {
         return json(
           {
             error:
-              "upload failed: invalid CATBOX_USERHASH. Double-check the hash in your catbox profile.",
+              "upload failed: invalid CATBOX_USERHASH. Double-check the hash.",
           },
           500,
         );
       }
       return json(
-        { error: "upload failed (HTTP " + catboxResp.status + "): " + msg },
+        { error: "catbox error (HTTP " + catboxResp.status + "): " + catboxMsg },
         500,
       );
     }
 
-    const fileUrl = (await catboxResp.text()).trim();
+    const fileUrl = catboxMsg;
 
     if (!fileUrl || !fileUrl.startsWith("http")) {
       return json(
-        { error: "upload failed: unexpected response from storage" },
+        { error: "catbox returned unexpected response: " + catboxMsg },
         500,
       );
     }

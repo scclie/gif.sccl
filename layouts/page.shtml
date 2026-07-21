@@ -103,12 +103,14 @@
 
     #gallery-grid,#user-gallery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.75rem}
     #user-gallery-section{margin-bottom:1.5rem}
-    .gallery-item{border:1px solid var(--nord3);padding:.5rem;text-align:center;position:relative}
-    .gallery-item img{max-width:100%;max-height:200px;display:block;margin:0 auto .5rem}
-    .gallery-item .gif-info{font-size:.75rem;color:var(--fg-dim);margin-bottom:.5rem}
-    .gallery-item .btn{font-size:.75rem;padding:.25rem .5rem}
-    .copy-success{color:var(--nord14)!important}
-    .gif-tags{margin-bottom:.35rem}
+.gallery-item{border:1px solid var(--nord3);padding:.5rem;text-align:center;position:relative;display:flex;flex-direction:column}
+.gallery-item img{max-width:100%;max-height:200px;display:block;margin:0 auto .5rem}
+.gallery-item .gif-info{font-size:.75rem;color:var(--fg-dim);margin-bottom:.5rem}
+.gallery-item .btn{font-size:.75rem;padding:.25rem .5rem}
+.gallery-item .btn-row{margin-top:auto;padding-top:.5rem;display:flex;justify-content:center;gap:.4rem;flex-wrap:wrap}
+.copy-success{color:var(--nord14)!important}
+.own-btn{margin:0}
+.gif-tags{margin-bottom:.35rem}
     .tag{display:inline-block;font-size:.65rem;color:var(--nord14);border:1px solid var(--nord3);border-radius:3px;padding:0 .35rem;margin:0 .15rem .2rem 0}
 
     #crop-stage{position:relative;display:inline-block;max-width:100%;overflow:hidden}

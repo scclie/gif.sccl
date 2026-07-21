@@ -8,7 +8,8 @@ export async function onRequestPost(context) {
     const body = await request.json();
     const id = body.id;
     const tagsRaw = (body.tags || '').trim();
-    const tags = JSON.stringify(tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : []);
+    const tagsList = tagsRaw ? tagsRaw.split(',').map(t => t.trim().slice(0, 30)).filter(Boolean).slice(0, 10) : [];
+    const tags = JSON.stringify(tagsList);
     const deleteToken = body.delete_token;
 
     if (!id) {
