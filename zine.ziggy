@@ -1,4 +1,5 @@
-Site {
+.zine_version = "0.13.0",
+.site = .simple(.{
     .title = "gif.sccl.cc",
     .host_url = "https://gif.sccl.cc",
     .content_dir_path = "content",
@@ -13,4 +14,4 @@ Site {
         "llms.txt",
         "sitemap.xml",
     ],
-}
+}),

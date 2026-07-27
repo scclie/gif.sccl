@@ -1,9 +1,9 @@
 ---
 .title = "gallery — gif.sccl.cc",
-.date = @date("2026-10-07T00:00:00"),
-.author = "sccl",
+.date = .date("2026-10-07T00:00:00"),
+.authors = ["sccl"],
 .layout = "page.shtml",
-.custom = {
+.custom = .{
     .tab = "gallery",
     .description = "Public gallery of all GIFs created on gif.sccl.cc",
 },
