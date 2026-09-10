@@ -157,9 +157,8 @@
       <div class="card-footer">
         <span :text="$page.custom.get('tab').suffix('.smd')"></span>
         <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap">
-          <a href="https://github.com/scclie/gif.sccl" class="zine-credit" target="_blank">source</a>
+          <a href="https://git.sccl.cc/scclie/gif.sccl" class="zine-credit" target="_blank">source</a>
           <a href="https://zine-ssg.io" class="zine-credit" target="_blank">built with zig zine</a>
-          <a href="https://catbox.moe" class="zine-credit" target="_blank">cutest file host - catbox.moe</a>
         </div>
         <a href="https://sccl.cc" class="symbol" target="_blank" style="text-decoration:none">sccl.cc</a>
       </div>
@@ -169,5 +168,6 @@
   <script>
     (function(){var a=document.getElementById('auth-status'),b=document.getElementById('btn-login'),c=document.getElementById('btn-logout');function d(){a.style.display='none';b.style.display='inline-block';c.style.display='none';localStorage.removeItem('gif_user')}function e(u,ad){a.style.display='flex';a.innerHTML='<img class="avatar" src="https://cdn.discordapp.com/avatars/'+u.discord_id+'/'+u.avatar+'.png" alt="">'+u.username+(ad?' <span style="color:var(--nord11)">(admin)</span>':'');b.style.display='none';c.style.display='inline-block'}c.addEventListener('click',function(){fetch('/api/auth/logout',{method:'POST',credentials:'same-origin'}).then(function(){d()}).catch(function(){d()})});b.addEventListener('click',function(){window.location.href='/api/auth/discord'});function check(){var cached=localStorage.getItem('gif_user');var cachedAdmin=localStorage.getItem('gif_admin')==='1';if(cached){try{var u=JSON.parse(cached);e(u,cachedAdmin)}catch(e){}}var last=parseInt(localStorage.getItem('gif_auth_check')||'0');if(Date.now()-last<3600000)return;localStorage.setItem('gif_auth_check',Date.now());fetch('/api/auth/me',{credentials:'same-origin'}).then(function(r){return r.json()}).then(function(d){if(d.user){e(d.user,d.admin);localStorage.setItem('gif_user',JSON.stringify(d.user));localStorage.setItem('gif_admin',d.admin?'1':'0')}else{d();localStorage.removeItem('gif_user');localStorage.removeItem('gif_admin')}}).catch(function(){d()})}check()})();
   </script>
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=turnstileLoaded" async defer></script>
 </body>
 </html>

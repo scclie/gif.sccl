@@ -170,10 +170,16 @@ function addImageFrames(gif,fps){var width=parseInt(document.getElementById('opt
 imageFiles.forEach(function(file,i){var img=new Image();img.onload=function(){var w=cropSrcW;var h=cropSrcH;if(!w||!h||!isFinite(w)||!isFinite(h)){showError('failed to load image: '+file.name);return}var cl=Math.min(parseInt(CL.value)||0,w-1);var cr=Math.min(parseInt(CR.value)||0,w-cl-1);var ct=Math.min(parseInt(CT.value)||0,h-1);var cb=Math.min(parseInt(CB.value)||0,h-ct-1);var cw=w-cl-cr;var ch=h-ct-cb;var canvas=document.createElement('canvas');var ctx=canvas.getContext('2d');canvas.width=width;canvas.height=Math.max(1,Math.round(width*ch/cw));ctx.drawImage(img,cl,ct,cw,ch,0,0,canvas.width,canvas.height);gif.addFrame(ctx.getImageData(0,0,canvas.width,canvas.height),{delay:delay});loaded++;if(loaded>=imageFiles.length)gif.render()};img.onerror=function(){showError('failed to load image: '+file.name)};img.src=URL.createObjectURL(file)})}
 
 function saveGif(){BSAVE.disabled=true;BSAVE.textContent='uploading...';var tg=(document.getElementById('opt-tags').value||'').trim();if(!tg){showError('add at least one tag before uploading');BSAVE.disabled=false;BSAVE.textContent='[ get permanent link ]';return};var fd=new FormData();fd.append('gif',currentGifBlob,'gif.sccl.cc.gif');fd.append('public',CHP.checked?'true':'false');if(tg)fd.append('tags',tg)
-fetch('/api/upload',{method:'POST',body:fd,credentials:'same-origin'}).then(function(r){if(!r.ok){return r.text().then(function(txt){throw new Error(txt||'HTTP '+r.status)})};return r.json()}).then(function(data){if(data.error){showError(data.error);BSAVE.disabled=false;BSAVE.textContent='[ get permanent link ]';return}
+if(!user){
+  var tsToken=window.turnstile&&_tsWidget?window.turnstile.getResponse(_tsWidget):'';
+  if(!tsToken){showError('solve the captcha first');BSAVE.disabled=false;BSAVE.textContent='[ get permanent link ]';return}
+  fd.append('cf-turnstile-response',tsToken);
+}
+function resetCaptcha(){if(!user&&_tsWidget&&window.turnstile)window.turnstile.reset(_tsWidget)}
+fetch('/api/upload',{method:'POST',body:fd,credentials:'same-origin'}).then(function(r){if(!r.ok){return r.text().then(function(txt){throw new Error(txt||'HTTP '+r.status)})};return r.json()}).then(function(data){if(data.error){resetCaptcha();showError(data.error);BSAVE.disabled=false;BSAVE.textContent='[ get permanent link ]';return}
 savedGifUrl=data.url;savedDeleteToken=data.delete_token;savedGifId=data.id;SR.style.display='block';GU.href=data.url;GU.target='_blank';GU.rel='noopener noreferrer';GU.textContent=data.url;DH.textContent='delete token: '+data.delete_token+' (save this to delete your gif)'
 try{var tokens=JSON.parse(localStorage.getItem('gif_tokens')||'{}');tokens[data.id]=data.delete_token;localStorage.setItem('gif_tokens',JSON.stringify(tokens))}catch(e){}
-BSAVE.disabled=false;BSAVE.textContent='[ get permanent link ]'}).catch(function(err){showError('upload failed: '+err.message);BSAVE.disabled=false;BSAVE.textContent='[ get permanent link ]'})}
+BSAVE.disabled=false;BSAVE.textContent='[ get permanent link ]';resetCaptcha()}).catch(function(err){showError('upload failed: '+err.message);BSAVE.disabled=false;BSAVE.textContent='[ get permanent link ]';resetCaptcha()})}
 
 function copyText(t,btn){navigator.clipboard.writeText(t).then(function(){var orig=btn.textContent;btn.textContent='copied!';setTimeout(function(){btn.textContent=orig},1500)}).catch(function(){})}
 
@@ -205,4 +211,16 @@ function renderTags(){
 if(tagsInput)tagsInput.addEventListener('keydown',function(e){
   if(e.key===' '||e.key==='Enter'||e.key===','){e.preventDefault();var val=tagsInput.value.trim().slice(0,30);if(val&&tagList.indexOf(val)===-1&&tagList.length<10){tagList.push(val);renderTags()};tagsInput.value=''}
   if(e.key==='Backspace'&&tagsInput.value===''&&tagList.length){tagList.pop();renderTags()}})
+var _tsKey=null,_tsWidget=null;
+window.turnstileLoaded=function(){maybeRenderTurnstile()};
+function maybeRenderTurnstile(){
+  var el=document.getElementById('turnstile-widget');
+  if(el&&!user&&_tsKey&&window.turnstile&&!_tsWidget){
+    _tsWidget=window.turnstile.render(el,{sitekey:_tsKey});
+  }
+}
+fetch('/api/config').then(function(r){return r.json()}).then(function(d){
+  _tsKey=d.turnstileSiteKey;
+  maybeRenderTurnstile();
+}).catch(function(){});
 resetDefaults();checkAuth()})();

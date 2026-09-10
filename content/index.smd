@@ -5,7 +5,7 @@
 .layout = "page.shtml",
 .custom = .{
     .tab = "home",
-    .description = "Create GIFs from videos and images. Free, no tracking. Direct permalinks for Discord & Telegram via Catbox CDN.",
+    .description = "Create GIFs from videos and images. Free, no tracking. Direct permalinks for Discord & Telegram.",
 },
 ---
 
@@ -99,8 +99,9 @@
       <button id="btn-save" class="btn">[ get permanent link ]</button>
       <button id="btn-download" class="btn">[ download ]</button>
     </div>
+    <div id="turnstile-widget" style="margin-top:.5rem"></div>
     <div>
-    <span id="auth-prompt" class="hint"><a href="/api/auth/discord">login with discord</a> for higher permalink limits (30/h)</span>
+    <span id="auth-prompt" class="hint"><a href="/api/auth/discord">login with discord</a> for uploading without cf captcha and higher limits</span>
     </div>
     <div id="save-result" style="display:none">
       <p>permanent url: <a id="gif-url"></a></p>

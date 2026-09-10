@@ -1,0 +1,81 @@
+name: deploy
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: gif-sccl-deploy
+
+jobs:
+  deploy:
+    if: startsWith(github.server_url, 'http://10.69.0.10') || startsWith(github.server_url, 'https://git.sccl.cc')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Zine
+        uses: https://github.com/kristoff-it/setup-zine@v2
+
+      - name: Build
+        run: zine release --force
+
+      - name: Install rsync
+        run: apt-get update && apt-get install -y rsync
+
+      - name: Publish to /tank/sites
+        run: |
+          set -euo pipefail
+          RELEASE="$(date -u +%Y%m%dT%H%M%S)-${GITHUB_SHA::8}"
+          REL="/tank/sites/gif.sccl/releases/${RELEASE}"
+          mkdir -p "${REL}"
+          rsync -a --delete ./public/ "${REL}/"
+          ln -sfn "releases/${RELEASE}" /tank/sites/gif.sccl/public
+          ls -1 /tank/sites/gif.sccl/releases | sort | head -n -5 | xargs -r -I{} rm -rf "/tank/sites/gif.sccl/releases/{}"
+
+  deploy-server:
+    if: startsWith(github.server_url, 'http://10.69.0.10') || startsWith(github.server_url, 'https://git.sccl.cc')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install docker CLI
+        run: apt-get update && apt-get install -y docker.io
+
+      - name: Verify docker socket
+        run: test -S /var/run/docker.sock && echo "docker socket ok" || { echo "docker socket missing"; exit 1; }
+
+      - name: Build and push server image
+        run: |
+          set -euo pipefail
+          IMG="10.69.0.17:5000/scclie/gif:main"
+          docker build -t "${IMG}" ./server
+          docker push "${IMG}"
+
+      - name: Redeploy gifs container
+        run: |
+          set -euo pipefail
+          for s in \
+            /run/secrets/gif/discord-client-id \
+            /run/secrets/gif/discord-client-secret \
+            /run/secrets/gif/turnstile-site-key \
+            /run/secrets/gif/turnstile-secret-key \
+            /run/secrets/gif-sccl/db-password ; do
+            test -s "$s" || { echo "!! missing or empty secret: $s"; exit 1; }
+          done
+          cat > /tmp/gifs.env <<EOF
+          DATABASE_URL=postgresql://gif:$(cat /run/secrets/gif-sccl/db-password)@10.69.0.1:5432/gif
+          DATA_DIR=/var/gifs
+          DISCORD_CLIENT_ID=$(cat /run/secrets/gif/discord-client-id)
+          DISCORD_CLIENT_SECRET=$(cat /run/secrets/gif/discord-client-secret)
+          DISCORD_REDIRECT_URI=https://gif.sccl.cc/api/auth/callback
+          TURNSTILE_SITE_KEY=$(cat /run/secrets/gif/turnstile-site-key)
+          TURNSTILE_SECRET_KEY=$(cat /run/secrets/gif/turnstile-secret-key)
+          USER_RATE_LIMIT=30
+          PORT=8083
+          EOF
+          docker rm -f gifs || true
+          docker run -d --name gifs --restart unless-stopped \
+            --network host \
+            --env-file /tmp/gifs.env \
+            -v /tank/gifs:/var/gifs \
+            10.69.0.17:5000/scclie/gif:main
