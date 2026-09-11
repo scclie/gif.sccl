@@ -6,7 +6,7 @@ import { respond } from '../server.mjs';
 
 export async function apiGifItem(ctx) {
   const { url, res, env } = ctx;
-  const m = url.pathname.match(/^\/api\/gif\/([0-9a-f-]{36})\.gif$/);
+  const m = url.pathname.match(/^\/api\/gif\/([0-9A-Za-z-]{8,36})\.gif$/);
   if (!m) return respond(res, 400, 'invalid id', { 'Content-Type': 'text/plain' });
   const id = m[1];
 

@@ -1,6 +1,6 @@
 import busboy from 'busboy';
 
-const MAX_FILE = 20 * 1024 * 1024;
+const MAX_FILE = 15 * 1024 * 1024;
 
 export function parseMultipart(req) {
   return new Promise((resolve, reject) => {
@@ -27,7 +27,7 @@ export function parseMultipart(req) {
 
     bb.on('close', () => {
       if (tooBig) {
-        reject(Object.assign(new Error('file too large (max 20MB)'), { code: 'TOO_BIG' }));
+        reject(Object.assign(new Error('file too large (max 15MB)'), { code: 'TOO_BIG' }));
       } else {
         resolve({ fields, file });
       }

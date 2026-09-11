@@ -155,7 +155,7 @@ var gif=new GIF({workers:2,quality:quality,width:width,workerScript:'/js/gif.wor
 gif.on('progress',function(p){var pct=Math.round(p*100);PP.textContent=pct+'%';PF.style.width=pct+'%'})
 gif.on('finished',function(blob){currentGifBlob=blob;GP.src=URL.createObjectURL(blob);RES.style.display='block';PROG.style.display='none';BC.disabled=false
 var sz=blob.size;GS.textContent=sz>=1048576?(sz/1048576).toFixed(1)+' MB':(sz/1024).toFixed(0)+' KB';
-GS.textContent+=sz>5242880?'\nyou can try reducing the weight by lowering resolution / number of colors / fps. for smoother gradients try dithering':''
+GS.textContent+=sz>15728640?'\nTOO HEAVY — this gif won\'t upload (max 15 MB). lower resolution / colors / fps and try again':(sz>5242880?'\nyou can try reducing the weight by lowering resolution / number of colors / fps. for smoother gradients try dithering':'')
 BD.onclick=function(){var a=document.createElement('a');a.href=GP.src;a.download='gif.sccl.cc-'+originalBaseName+'.gif';a.click()}
 })
 if(inputType==='video')addVideoFrames(gif,fps)
@@ -169,7 +169,9 @@ next()}
 function addImageFrames(gif,fps){var width=parseInt(document.getElementById('opt-width').value)||480;var delay=1000/fps;var loaded=0
 imageFiles.forEach(function(file,i){var img=new Image();img.onload=function(){var w=cropSrcW;var h=cropSrcH;if(!w||!h||!isFinite(w)||!isFinite(h)){showError('failed to load image: '+file.name);return}var cl=Math.min(parseInt(CL.value)||0,w-1);var cr=Math.min(parseInt(CR.value)||0,w-cl-1);var ct=Math.min(parseInt(CT.value)||0,h-1);var cb=Math.min(parseInt(CB.value)||0,h-ct-1);var cw=w-cl-cr;var ch=h-ct-cb;var canvas=document.createElement('canvas');var ctx=canvas.getContext('2d');canvas.width=width;canvas.height=Math.max(1,Math.round(width*ch/cw));ctx.drawImage(img,cl,ct,cw,ch,0,0,canvas.width,canvas.height);gif.addFrame(ctx.getImageData(0,0,canvas.width,canvas.height),{delay:delay});loaded++;if(loaded>=imageFiles.length)gif.render()};img.onerror=function(){showError('failed to load image: '+file.name)};img.src=URL.createObjectURL(file)})}
 
-function saveGif(){BSAVE.disabled=true;BSAVE.textContent='uploading...';var tg=(document.getElementById('opt-tags').value||'').trim();if(!tg){showError('add at least one tag before uploading');BSAVE.disabled=false;BSAVE.textContent='[ get permanent link ]';return};var fd=new FormData();fd.append('gif',currentGifBlob,'gif.sccl.cc.gif');fd.append('public',CHP.checked?'true':'false');if(tg)fd.append('tags',tg)
+function saveGif(){BSAVE.disabled=true;BSAVE.textContent='uploading...';var tg=(document.getElementById('opt-tags').value||'').trim();if(!tg){showError('add at least one tag before uploading');BSAVE.disabled=false;BSAVE.textContent='[ get permanent link ]';return}
+if(currentGifBlob&&currentGifBlob.size>15728640){showError('gif is too heavy (max 15MB) — lower resolution / colors / fps and try again');BSAVE.disabled=false;BSAVE.textContent='[ get permanent link ]';return}
+var fd=new FormData();fd.append('gif',currentGifBlob,'gif.sccl.cc.gif');fd.append('public',CHP.checked?'true':'false');if(tg)fd.append('tags',tg)
 if(!user){
   var tsToken=window.turnstile&&_tsWidget?window.turnstile.getResponse(_tsWidget):'';
   if(!tsToken){showError('solve the captcha first');BSAVE.disabled=false;BSAVE.textContent='[ get permanent link ]';return}

@@ -3,6 +3,7 @@ import { pool, migrate } from './db.mjs';
 import { clientIp } from './lib/net.mjs';
 import { parseCookies } from './lib/session.mjs';
 import { apiConfig } from './api/config.mjs';
+import { apiHealth } from './api/health.mjs';
 import { apiGifs } from './api/gifs.mjs';
 import { apiGifItem } from './api/gifItem.mjs';
 import { apiUpload } from './api/upload.mjs';
@@ -34,11 +35,12 @@ export function htmlPage(res, msg, to = '/') {
 
 const routes = [
   ['GET', '/api/config', apiConfig],
+  ['GET', '/api/health', apiHealth],
   ['GET', '/api/gifs', apiGifs],
   ['POST', '/api/gif/edit', apiGifEdit],
   ['POST', '/api/delete', apiDelete],
   ['POST', '/api/upload', apiUpload],
-  ['GET', /^\/api\/gif\/([0-9a-f-]{36})\.gif$/, apiGifItem],
+  ['GET', /^\/api\/gif\/([0-9A-Za-z-]{8,36})\.gif$/, apiGifItem],
   ['GET', '/api/auth/discord', apiAuth.discord],
   ['GET', '/api/auth/callback', apiAuth.callback],
   ['POST', '/api/auth/logout', apiAuth.logout],
@@ -72,10 +74,16 @@ async function rateLimitMiddleware(req) {
   const ip = clientIp(req);
   const now = Date.now();
   await pool.query('DELETE FROM rate_limits WHERE ts < $1', [now - 300000]).catch(() => {});
-  const { rows } = await pool.query(
-    'SELECT COUNT(*) AS count FROM rate_limits WHERE ip = $1 AND ts > $2',
-    [ip, now - 60000],
-  );
+  let rows = null;
+  try {
+    const { rows: r } = await pool.query(
+      'SELECT COUNT(*) AS count FROM rate_limits WHERE ip = $1 AND ts > $2',
+      [ip, now - 60000],
+    );
+    rows = r;
+  } catch {
+    return null;
+  }
   if (rows[0].count >= 60) {
     return { status: 429, body: 'Too Many Requests', headers: { 'Retry-After': '60', 'Content-Type': 'text/plain' } };
   }
@@ -116,10 +124,12 @@ const server = http.createServer(async (req, res) => {
   }
 
   // Global /api/* rate limiter — only after the route exists (parity with legacy CF middleware)
-  const limited = await rateLimitMiddleware(req);
-  if (limited) {
-    respond(res, limited.status, limited.body, limited.headers);
-    return;
+  if (url.pathname !== '/api/health') {
+    const limited = await rateLimitMiddleware(req);
+    if (limited) {
+      respond(res, limited.status, limited.body, limited.headers);
+      return;
+    }
   }
 
   const ctx = { req, res, url, env: req.env, user: req.user, admin: req.admin };

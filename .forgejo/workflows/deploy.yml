@@ -71,6 +71,7 @@ jobs:
           TURNSTILE_SITE_KEY=$(cat /run/secrets/gif/turnstile-site-key)
           TURNSTILE_SECRET_KEY=$(cat /run/secrets/gif/turnstile-secret-key)
           USER_RATE_LIMIT=30
+          ANON_RATE_LIMIT=5
           PORT=8083
           EOF
           docker rm -f gifs || true

@@ -1,9 +1,8 @@
-import { randomUUID } from 'node:crypto';
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pool } from '../db.mjs';
 import { parseMultipart } from '../multipart.mjs';
-import { parseTags } from '../lib/format.mjs';
+import { parseTags, newId, newToken } from '../lib/format.mjs';
 import { clientIp } from '../lib/net.mjs';
 import { verifyTurnstile } from '../lib/turnstile.mjs';
 import { json } from '../server.mjs';
@@ -16,7 +15,7 @@ export async function apiUpload(ctx) {
     const tags = JSON.stringify(parseTags(fields.tags));
 
     if (!file) return json(res, { error: 'no gif file provided' }, 400);
-    if (file.length > 20 * 1024 * 1024) return json(res, { error: 'file too large (max 20MB)' }, 400);
+    if (file.length > 15 * 1024 * 1024) return json(res, { error: 'file too large (max 15MB)' }, 400);
 
     const ip = clientIp(req);
     const isAnon = !user;
@@ -27,9 +26,9 @@ export async function apiUpload(ctx) {
     }
 
     let rate = null;
-    if (user) {
-      const key = 'user:' + user.discord_id;
-      const maxLimit = parseInt(env.USER_RATE_LIMIT) || 30;
+    {
+      const key = user ? 'user:' + user.discord_id : 'anon:' + ip;
+      const maxLimit = user ? parseInt(env.USER_RATE_LIMIT) || 30 : parseInt(env.ANON_RATE_LIMIT) || 5;
       const now = Date.now();
       const { rows } = await pool.query('SELECT count, reset_at FROM upload_rate_limits WHERE key = $1', [key]);
       let next = rows[0] || { count: 0, reset_at: now + 3600000 };
@@ -41,11 +40,11 @@ export async function apiUpload(ctx) {
       rate = { key, count: next.count, reset_at: next.reset_at };
     }
 
-    const id = randomUUID();
+    const id = newId();
     const dataDir = env.DATA_DIR || '/var/gifs';
     await writeFile(path.join(dataDir, id + '.gif'), file);
 
-    const deleteToken = randomUUID();
+    const deleteToken = newToken();
 
     await pool.query(
       'INSERT INTO gifs (id, discord_id, public, created_at, size, delete_token, tags, file_path) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)',
