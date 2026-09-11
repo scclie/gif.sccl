@@ -60,8 +60,7 @@ export async function apiUpload(ctx) {
     }
 
     const base = 'https://' + (req.headers.host || 'gif.sccl.cc');
-    const gifUrl =
-      base + '/api/gif/' + id + (ext === 'webp' ? '.webp.gif' : '.gif');
+    const gifUrl = base + '/api/gif/' + id + '.' + ext;
     return json(res, {
       id,
       url: gifUrl,

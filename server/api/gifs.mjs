@@ -9,9 +9,7 @@ function baseUrl(ctx) {
 
 function gifUrl(r) {
   const fname = (r.file_path || '').split('/').pop() || r.id + '.gif';
-  const id = fname.replace(/\.(gif|webp)$/, '');
-  const isWebp = /\.webp$/i.test(fname);
-  return '/api/gif/' + id + (isWebp ? '.webp.gif' : '.gif');
+  return '/api/gif/' + fname;
 }
 
 export async function apiGifs(ctx) {

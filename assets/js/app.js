@@ -83,32 +83,22 @@
   }
   OFMT.addEventListener("change", syncFormatUi);
   function checkAuth() {
-    var cached = localStorage.getItem("gif_user");
-    if (cached) {
-      try {
-        user = JSON.parse(cached);
+    window.addEventListener("gif-auth", function (e) {
+      var d = e.detail;
+      user = d && d.user ? d.user : null;
+      if (user) {
         if (AP) AP.style.display = "none";
-      } catch (e) {}
-    }
-    var last = parseInt(localStorage.getItem("gif_auth_check") || "0");
-    var now = Date.now();
-    if (now - last < 3600000) return;
-    localStorage.setItem("gif_auth_check", now);
-    fetch("/api/auth/me", { credentials: "same-origin" })
-      .then(function (r) {
-        return r.json();
-      })
-      .then(function (d) {
-        if (d.user) {
-          user = d.user;
-          localStorage.setItem("gif_user", JSON.stringify(d.user));
-          if (AP) AP.style.display = "none";
-        } else {
-          user = null;
-          localStorage.removeItem("gif_user");
+        if (_tsWidget && window.turnstile) {
+          try {
+            window.turnstile.remove(_tsWidget);
+          } catch (_) {}
+          _tsWidget = null;
         }
-      })
-      .catch(function () {});
+      } else {
+        if (AP) AP.style.display = "block";
+        maybeRenderTurnstile();
+      }
+    });
   }
 
   function handleFiles(files) {

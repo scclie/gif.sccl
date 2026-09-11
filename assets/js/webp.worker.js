@@ -1,6 +1,20 @@
 "use strict";
 import Module from "./vendor/webp-wasm.js";
 
+function patchAnimationFlag(buf) {
+  var u = new Uint8Array(buf);
+  var pos = 12;
+  while (pos + 8 <= u.length) {
+    var tag = String.fromCharCode(u[pos], u[pos + 1], u[pos + 2], u[pos + 3]);
+    var sz = u[pos + 4] | (u[pos + 5] << 8) | (u[pos + 6] << 16) | (u[pos + 7] << 24);
+    if (tag === "VP8X") {
+      u[pos + 8] |= 0x20;
+      break;
+    }
+    pos += 8 + sz + (sz & 1);
+  }
+}
+
 function encode(msg) {
   return Module().then(function (module) {
     var frames = msg.frames || [];
@@ -14,7 +28,9 @@ function encode(msg) {
         has_config: true,
       });
     });
-    return module.encodeAnimation(msg.width, msg.height, true, frameVector);
+    var buf = module.encodeAnimation(msg.width, msg.height, true, frameVector);
+    if (buf && buf.length) patchAnimationFlag(buf);
+    return buf;
   });
 }
 

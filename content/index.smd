@@ -111,7 +111,6 @@
     </div>
     <div id="save-result" style="display:none">
       <p>permanent url: <a id="gif-url"></a></p>
-      <p class="hint" style="margin-top:.35rem">also works for webp files — the link always ends in .gif so discord &amp; telegram embed it as an animation. for webp uploads it reads <code>.webp.gif</code>.</p>
       <button id="btn-copy-perm" class="btn">[ copy url ]</button>
       <p class="hint" id="delete-hint"></p>
     </div>
