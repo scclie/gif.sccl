@@ -1,15 +1,15 @@
-import http from 'node:http';
-import { pool, migrate } from './db.mjs';
-import { clientIp } from './lib/net.mjs';
-import { parseCookies } from './lib/session.mjs';
-import { apiConfig } from './api/config.mjs';
-import { apiHealth } from './api/health.mjs';
-import { apiGifs } from './api/gifs.mjs';
-import { apiGifItem } from './api/gifItem.mjs';
-import { apiUpload } from './api/upload.mjs';
-import { apiDelete } from './api/delete.mjs';
-import { apiGifEdit } from './api/gifEdit.mjs';
-import { apiAuth } from './api/auth.mjs';
+import http from "node:http";
+import { pool, migrate } from "./db.mjs";
+import { clientIp } from "./lib/net.mjs";
+import { parseCookies } from "./lib/session.mjs";
+import { apiConfig } from "./api/config.mjs";
+import { apiHealth } from "./api/health.mjs";
+import { apiGifs } from "./api/gifs.mjs";
+import { apiGifItem } from "./api/gifItem.mjs";
+import { apiUpload } from "./api/upload.mjs";
+import { apiDelete } from "./api/delete.mjs";
+import { apiGifEdit } from "./api/gifEdit.mjs";
+import { apiAuth } from "./api/auth.mjs";
 
 export function respond(res, status, body, headers = {}) {
   res.writeHead(status, { ...headers });
@@ -17,34 +17,37 @@ export function respond(res, status, body, headers = {}) {
 }
 
 export function json(res, data, status = 200, headers = {}) {
-  respond(res, status, JSON.stringify(data), { 'Content-Type': 'application/json', ...headers });
+  respond(res, status, JSON.stringify(data), {
+    "Content-Type": "application/json",
+    ...headers,
+  });
 }
 
 export function redirect(res, location, status = 302) {
-  respond(res, status, '', { Location: location });
+  respond(res, status, "", { Location: location });
 }
 
-export function htmlPage(res, msg, to = '/') {
+export function htmlPage(res, msg, to = "/") {
   respond(
     res,
     200,
     `<html><body><p>${msg}</p><script>setTimeout(function(){location.href="${to}"},2000)</script></body></html>`,
-    { 'Content-Type': 'text/html' },
+    { "Content-Type": "text/html" },
   );
 }
 
 const routes = [
-  ['GET', '/api/config', apiConfig],
-  ['GET', '/api/health', apiHealth],
-  ['GET', '/api/gifs', apiGifs],
-  ['POST', '/api/gif/edit', apiGifEdit],
-  ['POST', '/api/delete', apiDelete],
-  ['POST', '/api/upload', apiUpload],
-  ['GET', /^\/api\/gif\/([0-9A-Za-z-]{8,36})\.gif$/, apiGifItem],
-  ['GET', '/api/auth/discord', apiAuth.discord],
-  ['GET', '/api/auth/callback', apiAuth.callback],
-  ['POST', '/api/auth/logout', apiAuth.logout],
-  ['GET', '/api/auth/me', apiAuth.me],
+  ["GET", "/api/config", apiConfig],
+  ["GET", "/api/health", apiHealth],
+  ["GET", "/api/gifs", apiGifs],
+  ["POST", "/api/gif/edit", apiGifEdit],
+  ["POST", "/api/delete", apiDelete],
+  ["POST", "/api/upload", apiUpload],
+  ["GET", /^\/api\/gif\/([0-9A-Za-z-]{8,36})\.gif$/, apiGifItem],
+  ["GET", "/api/auth/discord", apiAuth.discord],
+  ["GET", "/api/auth/callback", apiAuth.callback],
+  ["POST", "/api/auth/logout", apiAuth.logout],
+  ["GET", "/api/auth/me", apiAuth.me],
 ];
 
 export function clientIpForReq(req) {
@@ -59,7 +62,7 @@ async function sessionMiddleware(req) {
   if (!sessId) return;
   try {
     const { rows } = await pool.query(
-      'SELECT payload FROM sessions WHERE id = $1 AND expires_at > $2',
+      "SELECT payload FROM sessions WHERE id = $1 AND expires_at > $2",
       [sessId, Date.now()],
     );
     if (!rows.length) return;
@@ -73,11 +76,13 @@ async function sessionMiddleware(req) {
 async function rateLimitMiddleware(req) {
   const ip = clientIp(req);
   const now = Date.now();
-  await pool.query('DELETE FROM rate_limits WHERE ts < $1', [now - 300000]).catch(() => {});
+  await pool
+    .query("DELETE FROM rate_limits WHERE ts < $1", [now - 300000])
+    .catch(() => {});
   let rows = null;
   try {
     const { rows: r } = await pool.query(
-      'SELECT COUNT(*) AS count FROM rate_limits WHERE ip = $1 AND ts > $2',
+      "SELECT COUNT(*) AS count FROM rate_limits WHERE ip = $1 AND ts > $2",
       [ip, now - 60000],
     );
     rows = r;
@@ -85,21 +90,27 @@ async function rateLimitMiddleware(req) {
     return null;
   }
   if (rows[0].count >= 60) {
-    return { status: 429, body: 'Too Many Requests', headers: { 'Retry-After': '60', 'Content-Type': 'text/plain' } };
+    return {
+      status: 429,
+      body: "Too Many Requests",
+      headers: { "Retry-After": "60", "Content-Type": "text/plain" },
+    };
   }
-  await pool.query('INSERT INTO rate_limits (ip, ts) VALUES ($1, $2)', [ip, now]).catch(() => {});
+  await pool
+    .query("INSERT INTO rate_limits (ip, ts) VALUES ($1, $2)", [ip, now])
+    .catch(() => {});
   return null;
 }
 
 const server = http.createServer(async (req, res) => {
-  const url = new URL(req.url, 'http://x');
+  const url = new URL(req.url, "http://x");
 
-  if (req.method === 'OPTIONS') {
-    respond(res, 204, '', {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, X-Delete-Token, X-Admin',
-      'Access-Control-Max-Age': '86400',
+  if (req.method === "OPTIONS") {
+    respond(res, 204, "", {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, X-Delete-Token, X-Admin",
+      "Access-Control-Max-Age": "86400",
     });
     return;
   }
@@ -112,19 +123,21 @@ const server = http.createServer(async (req, res) => {
   let matched = null;
   for (const [method, rule, handler] of routes) {
     if (method !== req.method) continue;
-    if (typeof rule === 'string' ? rule === url.pathname : rule.test(url.pathname)) {
+    if (
+      typeof rule === "string" ? rule === url.pathname : rule.test(url.pathname)
+    ) {
       matched = { handler, params: url };
       break;
     }
   }
 
   if (!matched) {
-    respond(res, 404, 'not found', { 'Content-Type': 'text/plain' });
+    respond(res, 404, "not found", { "Content-Type": "text/plain" });
     return;
   }
 
-  // Global /api/* rate limiter — only after the route exists (parity with legacy CF middleware)
-  if (url.pathname !== '/api/health') {
+  const isStaticGif = /^\/api\/gif\/[^/]+\.gif$/.test(url.pathname);
+  if (url.pathname !== "/api/health" && !isStaticGif) {
     const limited = await rateLimitMiddleware(req);
     if (limited) {
       respond(res, limited.status, limited.body, limited.headers);
@@ -136,13 +149,13 @@ const server = http.createServer(async (req, res) => {
   try {
     await matched.handler(ctx);
   } catch (err) {
-    console.error('[gifs]', err);
-    if (!res.headersSent) json(res, { error: 'internal: ' + err.message }, 500);
+    console.error("[gifs]", err);
+    if (!res.headersSent) json(res, { error: "internal: " + err.message }, 500);
   }
 });
 
-const port = parseInt(process.env.PORT || '8080', 10);
+const port = parseInt(process.env.PORT || "8080", 10);
 await migrate();
-server.listen(port, '0.0.0.0', () => {
-  console.log('gif.sccl.cc server listening on :' + port);
+server.listen(port, "0.0.0.0", () => {
+  console.log("gif.sccl.cc server listening on :" + port);
 });
