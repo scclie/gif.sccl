@@ -6,7 +6,7 @@ import { respond } from '../server.mjs';
 
 export async function apiGifItem(ctx) {
   const { url, res, env } = ctx;
-  const m = url.pathname.match(/^\/api\/gif\/([0-9A-Za-z-]{8,36})\.gif$/);
+  const m = url.pathname.match(/^\/api\/gif\/([0-9A-Za-z-]{8,36})\.(?:gif|webp)(?:\.gif)?$/);
   if (!m) return respond(res, 400, 'invalid id', { 'Content-Type': 'text/plain' });
   const id = m[1];
 
@@ -18,8 +18,9 @@ export async function apiGifItem(ctx) {
     const filePath = path.resolve(env.DATA_DIR || '/var/gifs', rel);
     await stat(filePath);
 
+    const realExt = rel.split('.').pop();
     const headers = {
-      'Content-Type': 'image/gif',
+      'Content-Type': realExt === 'webp' ? 'image/webp' : 'image/gif',
       'Cache-Control': 'public, max-age=86400',
       'Access-Control-Allow-Origin': '*',
     };

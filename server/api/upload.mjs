@@ -13,8 +13,9 @@ export async function apiUpload(ctx) {
     const { fields, file } = await parseMultipart(req);
     const isPublic = fields.public === 'true';
     const tags = JSON.stringify(parseTags(fields.tags));
+    const ext = fields.format === 'webp' ? 'webp' : 'gif';
 
-    if (!file) return json(res, { error: 'no gif file provided' }, 400);
+    if (!file) return json(res, { error: 'no file provided' }, 400);
     if (file.length > 15 * 1024 * 1024) return json(res, { error: 'file too large (max 15MB)' }, 400);
 
     const ip = clientIp(req);
@@ -42,13 +43,13 @@ export async function apiUpload(ctx) {
 
     const id = newId();
     const dataDir = env.DATA_DIR || '/var/gifs';
-    await writeFile(path.join(dataDir, id + '.gif'), file);
+    await writeFile(path.join(dataDir, id + '.' + ext), file);
 
     const deleteToken = newToken();
 
     await pool.query(
       'INSERT INTO gifs (id, discord_id, public, created_at, size, delete_token, tags, file_path) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)',
-      [id, user ? user.discord_id : null, isPublic ? 1 : 0, new Date().toISOString(), file.length, deleteToken, tags, id + '.gif'],
+      [id, user ? user.discord_id : null, isPublic ? 1 : 0, new Date().toISOString(), file.length, deleteToken, tags, id + '.' + ext],
     );
 
     if (rate) {
@@ -59,7 +60,8 @@ export async function apiUpload(ctx) {
     }
 
     const base = 'https://' + (req.headers.host || 'gif.sccl.cc');
-    const gifUrl = base + '/api/gif/' + id + '.gif';
+    const gifUrl =
+      base + '/api/gif/' + id + (ext === 'webp' ? '.webp.gif' : '.gif');
     return json(res, {
       id,
       url: gifUrl,

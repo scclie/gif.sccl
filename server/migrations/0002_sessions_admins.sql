@@ -10,5 +10,5 @@ CREATE TABLE IF NOT EXISTS admins (
 CREATE TABLE IF NOT EXISTS upload_rate_limits (
   key TEXT PRIMARY KEY,
   count INTEGER DEFAULT 0,
-  reset_at INTEGER
+  reset_at BIGINT
 );

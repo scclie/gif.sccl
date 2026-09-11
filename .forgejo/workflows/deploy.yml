@@ -16,6 +16,9 @@ jobs:
       - name: Setup Zine
         uses: https://github.com/kristoff-it/setup-zine@v2
 
+      - name: Inject commit hash
+        run: SHORT_SHA="${GITHUB_SHA::8}" && sed -i "s/COMMIT_HASH/${SHORT_SHA}/" layouts/page.shtml content/index.smd
+
       - name: Build
         run: zine release --force
 

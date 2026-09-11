@@ -56,9 +56,15 @@
   <div id="settings" style="display:none">
     <p class="section-title">settings</p>
     <div class="settings-grid">
+      <label>format
+        <select id="opt-format">
+          <option value="webp" selected>webp</option>
+          <option value="gif">gif</option>
+        </select>
+      </label>
       <label>width <input type="number" id="opt-width" min="32" max="1920" value="480">px</label>
       <label>fps <input type="number" id="opt-fps" min="1" max="30" value="10"></label>
-      <label>colors
+      <label class="gif-only">colors
         <select id="opt-colors">
           <option value="256">256</option>
           <option value="128">128</option>
@@ -66,15 +72,15 @@
           <option value="32">32</option>
         </select>
       </label>
-      <label>dithering
+      <label class="gif-only">dithering
         <select id="opt-dither">
           <option value="">none</option>
           <option value="Bayer">bayer</option>
           <option value="FloydSteinberg">floyd-steinberg</option>
         </select>
       </label>
-      <label>quality <input type="number" id="opt-quality" min="1" max="20" value="10">(lower=better)</label>
-      <label>repeat <select id="opt-repeat"><option value="0">forever</option><option value="1">once</option></select></label>
+      <label>quality <input type="number" id="opt-quality" min="1" max="20" value="10"><span id="quality-hint" class="hint">(higher=better)</span></label>
+      <label class="gif-only">repeat <select id="opt-repeat"><option value="0">forever</option><option value="1">once</option></select></label>
     </div>
   </div>
 
@@ -83,7 +89,7 @@
   </div>
 
   <div id="progress" style="display:none">
-    <p>encoding... <span id="progress-pct">0%</span></p>
+    <p>encoding <span id="progress-fmt" style="color:var(--nord8)"></span> <span id="progress-pct">0%</span></p>
     <div id="progress-bar"><div id="progress-fill"></div></div>
   </div>
 
@@ -105,6 +111,7 @@
     </div>
     <div id="save-result" style="display:none">
       <p>permanent url: <a id="gif-url"></a></p>
+      <p class="hint" style="margin-top:.35rem">also works for webp files — the link always ends in .gif so discord &amp; telegram embed it as an animation. for webp uploads it reads <code>.webp.gif</code>.</p>
       <button id="btn-copy-perm" class="btn">[ copy url ]</button>
       <p class="hint" id="delete-hint"></p>
     </div>
@@ -115,6 +122,6 @@
   </div>
 </div>
 
-<script src="/js/gif.js"></script>
-<script src="/js/app.js"></script>
+<script src="/js/gif.js?v=COMMIT_HASH"></script>
+<script src="/js/app.js?v=COMMIT_HASH"></script>
 ```

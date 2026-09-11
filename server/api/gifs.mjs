@@ -7,6 +7,13 @@ function baseUrl(ctx) {
   return 'https://' + host;
 }
 
+function gifUrl(r) {
+  const fname = (r.file_path || '').split('/').pop() || r.id + '.gif';
+  const id = fname.replace(/\.(gif|webp)$/, '');
+  const isWebp = /\.webp$/i.test(fname);
+  return '/api/gif/' + id + (isWebp ? '.webp.gif' : '.gif');
+}
+
 export async function apiGifs(ctx) {
   const { url, admin, res } = ctx;
   const base = baseUrl(ctx);
@@ -23,8 +30,8 @@ export async function apiGifs(ctx) {
         );
         const gifs = rows.map((r) => ({
           id: r.id,
-          url: base + '/api/gif/' + r.id + '.gif',
-          direct_url: base + '/api/gif/' + r.id + '.gif',
+          url: base + gifUrl(r),
+          direct_url: base + gifUrl(r),
           created_at: r.created_at,
           size: formatSize(r.size),
           tags: r.tags ? JSON.parse(r.tags) : [],
@@ -50,8 +57,8 @@ export async function apiGifs(ctx) {
       const { rows: countRows } = await pool.query('SELECT COUNT(*) AS count FROM gifs');
       const gifs = rows.map((r) => ({
         id: r.id,
-        url: base + '/api/gif/' + r.id + '.gif',
-        direct_url: base + '/api/gif/' + r.id + '.gif',
+        url: base + gifUrl(r),
+        direct_url: base + gifUrl(r),
         created_at: r.created_at,
         size: formatSize(r.size),
         tags: r.tags ? JSON.parse(r.tags) : [],
@@ -68,8 +75,8 @@ export async function apiGifs(ctx) {
     const { rows: countRows } = await pool.query('SELECT COUNT(*) AS count FROM gifs WHERE public = 1');
     const gifs = rows.map((r) => ({
       id: r.id,
-      url: base + '/api/gif/' + r.id + '.gif',
-      direct_url: base + '/api/gif/' + r.id + '.gif',
+      url: base + gifUrl(r),
+      direct_url: base + gifUrl(r),
       created_at: r.created_at,
       size: formatSize(r.size),
       tags: r.tags ? JSON.parse(r.tags) : [],

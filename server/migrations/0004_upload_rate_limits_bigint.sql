@@ -1,0 +1,1 @@
+ALTER TABLE upload_rate_limits ALTER COLUMN reset_at TYPE BIGINT;

@@ -8,6 +8,9 @@
     .static_assets = [
         "js/gif.js",
         "js/gif.worker.js",
+        "js/webp.worker.js",
+        "js/vendor/webp-wasm.js",
+        "js/vendor/webp-wasm.wasm",
         "js/app.js",
         "js/gallery.js",
         "robots.txt",

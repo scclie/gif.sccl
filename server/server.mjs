@@ -43,7 +43,7 @@ const routes = [
   ["POST", "/api/gif/edit", apiGifEdit],
   ["POST", "/api/delete", apiDelete],
   ["POST", "/api/upload", apiUpload],
-  ["GET", /^\/api\/gif\/([0-9A-Za-z-]{8,36})\.gif$/, apiGifItem],
+  ["GET", /^\/api\/gif\/([0-9A-Za-z-]{8,36})\.(?:gif|webp)(?:\.gif)?$/, apiGifItem],
   ["GET", "/api/auth/discord", apiAuth.discord],
   ["GET", "/api/auth/callback", apiAuth.callback],
   ["POST", "/api/auth/logout", apiAuth.logout],
@@ -136,7 +136,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  const isStaticGif = /^\/api\/gif\/[^/]+\.gif$/.test(url.pathname);
+  const isStaticGif = /^\/api\/gif\/[^/]+\.(gif|webp)$/.test(url.pathname);
   if (url.pathname !== "/api/health" && !isStaticGif) {
     const limited = await rateLimitMiddleware(req);
     if (limited) {
