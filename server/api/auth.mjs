@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { pool } from '../db.mjs';
 import { parseCookies } from '../lib/session.mjs';
 import { json, respond, redirect, htmlPage } from '../server.mjs';
+import { inc } from '../metrics.mjs';
 
 function envFor(env) {
   return {
@@ -71,6 +72,7 @@ export const apiAuth = {
         'Set-Cookie': 'gif_session=' + sessId + '; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=604800',
       });
     } catch (err) {
+      inc('gif_errors_total', { type: 'auth' });
       return htmlPage(res, 'Auth error: ' + err.message);
     }
   },

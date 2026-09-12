@@ -6,6 +6,7 @@ import { parseTags, newId, newToken, normalizeSlug } from '../lib/format.mjs';
 import { clientIp } from '../lib/net.mjs';
 import { verifyTurnstile } from '../lib/turnstile.mjs';
 import { json } from '../server.mjs';
+import { inc } from '../metrics.mjs';
 
 export async function apiUpload(ctx) {
   const { req, res, user, env } = ctx;
@@ -15,17 +16,26 @@ export async function apiUpload(ctx) {
     const tags = JSON.stringify(parseTags(fields.tags));
     const ext = fields.format === 'webp' ? 'webp' : 'gif';
     const { ok: slugOk, slug, error: slugErr } = normalizeSlug(fields.slug);
-    if (!slugOk) return json(res, { error: slugErr }, 400);
+    if (!slugOk) {
+      inc('gif_errors_total', { type: 'slug_invalid' });
+      return json(res, { error: slugErr }, 400);
+    }
 
     if (!file) return json(res, { error: 'no file provided' }, 400);
-    if (file.length > 15 * 1024 * 1024) return json(res, { error: 'file too large (max 15MB)' }, 400);
+    if (file.length > 15 * 1024 * 1024) {
+      inc('gif_errors_total', { type: 'too_big' });
+      return json(res, { error: 'file too large (max 15MB)' }, 400);
+    }
 
     const ip = clientIp(req);
     const isAnon = !user;
 
     if (isAnon) {
       const ok = await verifyTurnstile(env.TURNSTILE_SECRET_KEY, fields['cf-turnstile-response'] || '', ip);
-      if (!ok) return json(res, { error: 'captcha verification failed' }, 400);
+      if (!ok) {
+        inc('gif_errors_total', { type: 'captcha' });
+        return json(res, { error: 'captcha verification failed' }, 400);
+      }
     }
 
     let rate = null;
@@ -38,6 +48,7 @@ export async function apiUpload(ctx) {
       if (now > next.reset_at) next = { count: 0, reset_at: now + 3600000 };
       if (next.count >= maxLimit) {
         const retryAfter = Math.ceil((next.reset_at - now) / 1000);
+        inc('gif_errors_total', { type: 'rate_limit' });
         return json(res, { error: 'rate limit exceeded (' + maxLimit + '/hour). try again in ' + retryAfter + 's' }, 429);
       }
       rate = { key, count: next.count, reset_at: next.reset_at };
@@ -57,6 +68,7 @@ export async function apiUpload(ctx) {
       );
     } catch (e) {
       if (e.code === '23505' && /slug/.test(e.detail || '')) {
+        inc('gif_errors_total', { type: 'slug_taken' });
         return json(res, { error: 'name already taken' }, 409);
       }
       throw e;
@@ -71,6 +83,8 @@ export async function apiUpload(ctx) {
 
     const base = 'https://' + (req.headers.host || 'gif.sccl.cc');
     const gifUrl = base + '/api/gif/' + (slugId || id) + '.' + ext;
+    inc('gif_uploads_total', { format: ext, anon: isAnon ? '1' : '0' });
+    inc('gif_uploads_bytes_total', { format: ext }, file.length);
     return json(res, {
       id,
       url: gifUrl,
@@ -80,7 +94,11 @@ export async function apiUpload(ctx) {
       tags: JSON.parse(tags),
     });
   } catch (err) {
-    if (err.code === 'TOO_BIG') return json(res, { error: err.message }, 400);
+    if (err.code === 'TOO_BIG') {
+      inc('gif_errors_total', { type: 'too_big' });
+      return json(res, { error: err.message }, 400);
+    }
+    inc('gif_errors_total', { type: 'upload_failed' });
     return json(res, { error: 'upload failed: ' + err.message }, 500);
   }
 }

@@ -10,6 +10,7 @@ import { apiUpload } from "./api/upload.mjs";
 import { apiDelete } from "./api/delete.mjs";
 import { apiGifEdit } from "./api/gifEdit.mjs";
 import { apiAuth } from "./api/auth.mjs";
+import { inc, metricsHandler } from "./metrics.mjs";
 
 export function respond(res, status, body, headers = {}) {
   res.writeHead(status, { ...headers });
@@ -39,6 +40,7 @@ export function htmlPage(res, msg, to = "/") {
 const routes = [
   ["GET", "/api/config", apiConfig],
   ["GET", "/api/health", apiHealth],
+  ["GET", "/metrics", metricsHandler],
   ["GET", "/api/gifs", apiGifs],
   ["POST", "/api/gif/edit", apiGifEdit],
   ["POST", "/api/delete", apiDelete],
@@ -137,7 +139,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   const isStaticGif = /^\/api\/gif\/[^/.]+\.(?:gif|webp)$/.test(url.pathname);
-  if (url.pathname !== "/api/health" && !isStaticGif) {
+  if (url.pathname !== "/api/health" && url.pathname !== "/metrics" && !isStaticGif) {
     const limited = await rateLimitMiddleware(req);
     if (limited) {
       respond(res, limited.status, limited.body, limited.headers);
@@ -148,6 +150,10 @@ const server = http.createServer(async (req, res) => {
   const ctx = { req, res, url, env: req.env, user: req.user, admin: req.admin };
   try {
     await matched.handler(ctx);
+    const isApi = /^\/api\/(?!gif\/)/.test(url.pathname) && url.pathname !== "/metrics";
+    if (isApi) {
+      inc("gif_http_requests_total", { route: url.pathname, method: req.method, status: String(res.statusCode || 500) });
+    }
   } catch (err) {
     console.error("[gifs]", err);
     if (!res.headersSent) json(res, { error: "internal: " + err.message }, 500);

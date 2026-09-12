@@ -18,8 +18,9 @@ minimal GIF maker - client-side encoding, no tracking.
 
 - site: [gif.sccl.cc](https://gif.sccl.cc)
 - static: [Zine SSG](https://zine-ssg.io)
+- encoder: for webp's - `webp-wasm.wasm`, for gif's - `gif.js`
 - api: self-hosted Node.js HTTP server in a Docker/OCI container on a [NixOS](https://nixos.org/) box behind the `sccl.*` facade
 - db: postgres on the same host (`/var/gifs` for files, pgsql for metadata)
 - deploy: фorgejo ci ([git.sccl.cc/scclie/gif.sccl](https://git.sccl.cc/scclie/gif.sccl)) builds the site and the api image
 - auth: discord oauth
-- monitoring: [status.sccl.cc](https://status.sccl.cc)
+- monitoring: [status.sccl.cc](https://status.sccl.cc), i also grab some metrics in prometheus-grafana
