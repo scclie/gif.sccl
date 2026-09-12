@@ -62,8 +62,8 @@
           <option value="gif">gif</option>
         </select>
       </label>
-      <label>width <input type="number" id="opt-width" min="32" max="1920" value="480">px</label>
-      <label>fps <input type="number" id="opt-fps" min="1" max="30" value="10"></label>
+      <label>width <input type="number" id="opt-width" min="32" max="1920" value="480" step="16">px <span class="hint">(32-1920)</span></label>
+      <label>fps <input type="number" id="opt-fps" min="1" max="30" value="10"><span id="fps-hint" class="hint">(1-30)</span></label>
       <label class="gif-only">colors
         <select id="opt-colors">
           <option value="256">256</option>
