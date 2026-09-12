@@ -8,6 +8,7 @@ function baseUrl(ctx) {
 }
 
 function gifUrl(r) {
+  if (r.slug) return '/api/gif/' + r.slug + '.' + (r.file_path || '').split('.').pop();
   const fname = (r.file_path || '').split('/').pop() || r.id + '.gif';
   return '/api/gif/' + fname;
 }
@@ -23,7 +24,7 @@ export async function apiGifs(ctx) {
       try {
         const ph = tokens.map((_, i) => '$' + (i + 1)).join(',');
         const { rows } = await pool.query(
-          `SELECT id, file_path, created_at, size, tags FROM gifs WHERE delete_token IN (${ph}) ORDER BY created_at DESC`,
+          `SELECT id, file_path, created_at, size, tags, slug FROM gifs WHERE delete_token IN (${ph}) ORDER BY created_at DESC`,
           tokens,
         );
         const gifs = rows.map((r) => ({
@@ -49,7 +50,7 @@ export async function apiGifs(ctx) {
 
     if (showAll && admin) {
       const { rows } = await pool.query(
-        'SELECT id, file_path, created_at, size, public, discord_id, tags FROM gifs ORDER BY created_at DESC LIMIT $1 OFFSET $2',
+        'SELECT id, file_path, created_at, size, public, discord_id, tags, slug FROM gifs ORDER BY created_at DESC LIMIT $1 OFFSET $2',
         [limit, offset],
       );
       const { rows: countRows } = await pool.query('SELECT COUNT(*) AS count FROM gifs');
@@ -67,7 +68,7 @@ export async function apiGifs(ctx) {
     }
 
     const { rows } = await pool.query(
-      'SELECT id, file_path, created_at, size, tags FROM gifs WHERE public = 1 ORDER BY created_at DESC LIMIT $1 OFFSET $2',
+      'SELECT id, file_path, created_at, size, tags, slug FROM gifs WHERE public = 1 ORDER BY created_at DESC LIMIT $1 OFFSET $2',
       [limit, offset],
     );
     const { rows: countRows } = await pool.query('SELECT COUNT(*) AS count FROM gifs WHERE public = 1');

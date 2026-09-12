@@ -300,7 +300,7 @@
     input.addEventListener("keydown", function (e) {
       if (e.key === " " || e.key === "Enter" || e.key === ",") {
         e.preventDefault();
-        var val = input.value.trim().slice(0, 30);
+        var val = input.value.trim().slice(0, 16);
         if (val && tagList.indexOf(val) === -1 && tagList.length < 10) {
           tagList.push(val);
           renderChips();

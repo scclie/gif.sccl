@@ -41,26 +41,28 @@
   var Q_HINT = document.getElementById("quality-hint");
   FPS_HINT.dataset.base = FPS_HINT.textContent;
   Q_HINT.dataset.base = Q_HINT.textContent;
-  [["opt-width", 32, 1920], ["opt-fps", 1, 30], ["opt-quality", 1, 20]].forEach(
-    function (c) {
-      var el = document.getElementById(c[0]);
-      el.addEventListener("change", function () {
-        var v = clamp(parseInt(el.value) || c[1], c[1], c[2]);
-        el.value = v;
-        if (el === OF) FPS_HINT.textContent = FPS_HINT.dataset.base;
-        if (el.id === "opt-quality") Q_HINT.textContent = Q_HINT.dataset.base;
-      });
-      el.addEventListener("input", function () {
-        var v = parseInt(el.value);
-        if (el === OF)
-          FPS_HINT.textContent =
-            v > 30 ? "(max 30, got " + v + " — will be capped)" : FPS_HINT.dataset.base;
-        if (el.id === "opt-quality")
-          Q_HINT.textContent =
-            v > 20 ? "(max 20, got " + v + " — will be capped)" : Q_HINT.dataset.base;
-      });
-    },
-  );
+  [
+    ["opt-width", 32, 1920],
+    ["opt-fps", 1, 30],
+    ["opt-quality", 1, 20],
+  ].forEach(function (c) {
+    var el = document.getElementById(c[0]);
+    el.addEventListener("change", function () {
+      var v = clamp(parseInt(el.value) || c[1], c[1], c[2]);
+      el.value = v;
+      if (el === OF) FPS_HINT.textContent = FPS_HINT.dataset.base;
+      if (el.id === "opt-quality") Q_HINT.textContent = Q_HINT.dataset.base;
+    });
+    el.addEventListener("input", function () {
+      var v = parseInt(el.value);
+      if (el === OF)
+        FPS_HINT.textContent =
+          v > 30 ? "(max 30, got " + v + ")" : FPS_HINT.dataset.base;
+      if (el.id === "opt-quality")
+        Q_HINT.textContent =
+          v > 20 ? "(max 20, got " + v + ")" : Q_HINT.dataset.base;
+    });
+  });
 
   var CI = document.getElementById("crop-img");
   var CX = document.getElementById("crop-box");
@@ -90,6 +92,7 @@
     document.getElementById("chk-public").checked = true;
     document.getElementById("opt-tags-input").value = "";
     document.getElementById("opt-tags").value = "";
+    document.getElementById("opt-slug").value = "";
     document.getElementById("opt-dither").value = "";
     document.getElementById("opt-format").value = "webp";
     syncFormatUi();
@@ -356,11 +359,23 @@
   }
 
   function createGif() {
-    var width = clamp(parseInt(document.getElementById("opt-width").value) || 480, 32, 1920);
-    var fps = clamp(parseInt(document.getElementById("opt-fps").value) || 10, 1, 30);
+    var width = clamp(
+      parseInt(document.getElementById("opt-width").value) || 480,
+      32,
+      1920,
+    );
+    var fps = clamp(
+      parseInt(document.getElementById("opt-fps").value) || 10,
+      1,
+      30,
+    );
     var colors = parseInt(document.getElementById("opt-colors").value) || 256;
     var dither = document.getElementById("opt-dither").value || false;
-    var quality = clamp(parseInt(document.getElementById("opt-quality").value) || 10, 1, 20);
+    var quality = clamp(
+      parseInt(document.getElementById("opt-quality").value) || 10,
+      1,
+      20,
+    );
     var repeat = parseInt(document.getElementById("opt-repeat").value) || 0;
     var fmt = OFMT.value || "webp";
     console.log("create: format =", fmt);
@@ -479,7 +494,11 @@
   var videoSeekCap = null;
 
   function addVideoFrames(sink, done, fps) {
-    var width = clamp(parseInt(document.getElementById("opt-width").value) || 480, 32, 1920);
+    var width = clamp(
+      parseInt(document.getElementById("opt-width").value) || 480,
+      32,
+      1920,
+    );
     var start = parseFloat(TS.value);
     var end = parseFloat(TE.value);
     var vw = cropSrcW;
@@ -525,7 +544,11 @@
   }
 
   function addImageFrames(sink, done, fps) {
-    var width = clamp(parseInt(document.getElementById("opt-width").value) || 480, 32, 1920);
+    var width = clamp(
+      parseInt(document.getElementById("opt-width").value) || 480,
+      32,
+      1920,
+    );
     var delay = 1000 / fps;
     var loaded = 0;
     imageFiles.forEach(function (file, i) {
@@ -585,6 +608,8 @@
     fd.append("format", fmt);
     fd.append("public", CHP.checked ? "true" : "false");
     if (tg) fd.append("tags", tg);
+    var slug = (document.getElementById("opt-slug").value || "").trim();
+    if (slug) fd.append("slug", slug);
     if (!user) {
       var tsToken =
         window.turnstile && _tsWidget
@@ -733,7 +758,7 @@
     tagsInput.addEventListener("keydown", function (e) {
       if (e.key === " " || e.key === "Enter" || e.key === ",") {
         e.preventDefault();
-        var val = tagsInput.value.trim().slice(0, 30);
+        var val = tagsInput.value.trim().slice(0, 16);
         if (val && tagList.indexOf(val) === -1 && tagList.length < 10) {
           tagList.push(val);
           renderTags();

@@ -2,7 +2,7 @@ import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pool } from '../db.mjs';
 import { parseMultipart } from '../multipart.mjs';
-import { parseTags, newId, newToken } from '../lib/format.mjs';
+import { parseTags, newId, newToken, normalizeSlug } from '../lib/format.mjs';
 import { clientIp } from '../lib/net.mjs';
 import { verifyTurnstile } from '../lib/turnstile.mjs';
 import { json } from '../server.mjs';
@@ -14,6 +14,8 @@ export async function apiUpload(ctx) {
     const isPublic = fields.public === 'true';
     const tags = JSON.stringify(parseTags(fields.tags));
     const ext = fields.format === 'webp' ? 'webp' : 'gif';
+    const { ok: slugOk, slug, error: slugErr } = normalizeSlug(fields.slug);
+    if (!slugOk) return json(res, { error: slugErr }, 400);
 
     if (!file) return json(res, { error: 'no file provided' }, 400);
     if (file.length > 15 * 1024 * 1024) return json(res, { error: 'file too large (max 15MB)' }, 400);
@@ -42,15 +44,23 @@ export async function apiUpload(ctx) {
     }
 
     const id = newId();
+    const slugId = slug ? id + '-' + slug : null;
     const dataDir = env.DATA_DIR || '/var/gifs';
     await writeFile(path.join(dataDir, id + '.' + ext), file);
 
     const deleteToken = newToken();
 
-    await pool.query(
-      'INSERT INTO gifs (id, discord_id, public, created_at, size, delete_token, tags, file_path) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)',
-      [id, user ? user.discord_id : null, isPublic ? 1 : 0, new Date().toISOString(), file.length, deleteToken, tags, id + '.' + ext],
-    );
+    try {
+      await pool.query(
+        'INSERT INTO gifs (id, discord_id, public, created_at, size, delete_token, tags, slug, file_path) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)',
+        [id, user ? user.discord_id : null, isPublic ? 1 : 0, new Date().toISOString(), file.length, deleteToken, tags, slugId, id + '.' + ext],
+      );
+    } catch (e) {
+      if (e.code === '23505' && /slug/.test(e.detail || '')) {
+        return json(res, { error: 'name already taken' }, 409);
+      }
+      throw e;
+    }
 
     if (rate) {
       await pool.query(
@@ -60,7 +70,7 @@ export async function apiUpload(ctx) {
     }
 
     const base = 'https://' + (req.headers.host || 'gif.sccl.cc');
-    const gifUrl = base + '/api/gif/' + id + '.' + ext;
+    const gifUrl = base + '/api/gif/' + (slugId || id) + '.' + ext;
     return json(res, {
       id,
       url: gifUrl,

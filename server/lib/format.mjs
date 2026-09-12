@@ -2,7 +2,7 @@ export function parseTags(raw) {
   if (!raw) return [];
   return raw
     .split(',')
-    .map((t) => t.trim().slice(0, 30))
+    .map((t) => t.trim().slice(0, 16))
     .filter(Boolean)
     .slice(0, 10);
 }
@@ -30,4 +30,15 @@ export function newId(len = 12) {
 
 export function newToken(len = 16) {
   return randomId(ID_ALPHABET, len);
+}
+
+export function normalizeSlug(raw) {
+  if (!raw) return { ok: true, slug: null };
+  let s = String(raw).toLowerCase().trim().replace(/\s+/g, '-');
+  if (s.length > 40) return { ok: false, error: 'name too long (max 40 chars)' };
+  if (!/^[a-z0-9-]+$/.test(s)) return { ok: false, error: 'name: only latin letters, numbers, dashes' };
+  s = s.replace(/-+/g, '-').replace(/^-|-$/g, '');
+  if (!s) return { ok: true, slug: null };
+  if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(s)) return { ok: false, error: 'name: cannot start/end with dash, no double dashes' };
+  return { ok: true, slug: s };
 }
