@@ -131,6 +131,15 @@
     #gallery-footer button:hover{background:var(--nord8);color:#000}
     #gallery-footer button:disabled{opacity:.4;cursor:not-allowed;pointer-events:none}
 
+    .search-row{position:relative;display:flex;gap:.5rem;align-items:center;margin-bottom:.75rem}
+    .search-row input{flex:1;background:var(--nord0);color:var(--fg);border:1px solid var(--nord3);padding:.35rem .5rem;font-family:"Space Mono",monospace;font-size:.875rem}
+    .search-row input:focus{outline:none;border-color:var(--nord8)}
+    #search-clear{background:transparent;color:var(--nord11);border:1px solid var(--nord11);padding:.35rem .6rem;cursor:pointer;font-family:"Space Mono",monospace;font-size:.875rem}
+    #search-clear:hover{background:var(--nord11);color:#000}
+    #search-suggestions{position:absolute;top:100%;left:0;right:0;z-index:20;background:var(--nord1);border:1px solid var(--nord3);border-top:none;max-height:200px;overflow-y:auto;text-align:left}
+    #search-suggestions .sugg{display:block;width:100%;background:transparent;border:none;color:var(--fg);font-family:"Space Mono",monospace;font-size:.875rem;padding:.3rem .5rem;cursor:pointer;text-align:left}
+    #search-suggestions .sugg:hover,#search-suggestions .sugg.active{background:var(--nord8);color:#000}
+
   </style>
 </head>
 <body>

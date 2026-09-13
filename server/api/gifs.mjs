@@ -1,5 +1,6 @@
 import { pool } from '../db.mjs';
 import { formatSize } from '../lib/format.mjs';
+import { escapeIlike } from '../lib/search.mjs';
 import { json } from '../server.mjs';
 
 function baseUrl(ctx) {
@@ -47,13 +48,24 @@ export async function apiGifs(ctx) {
     const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get('limit')) || 24));
     const offset = (page - 1) * limit;
     const showAll = url.searchParams.get('all') === 'true';
+    const search = (url.searchParams.get('q') || '').trim();
+    const like = search ? '%' + escapeIlike(search) + '%' : null;
 
     if (showAll && admin) {
       const { rows } = await pool.query(
-        'SELECT id, file_path, created_at, size, public, discord_id, tags, slug FROM gifs ORDER BY created_at DESC LIMIT $1 OFFSET $2',
-        [limit, offset],
+        like
+          ? `SELECT id, file_path, created_at, size, public, discord_id, tags, slug FROM gifs
+             WHERE (tags ILIKE $3 OR COALESCE(slug, '') ILIKE $3)
+             ORDER BY created_at DESC LIMIT $1 OFFSET $2`
+          : 'SELECT id, file_path, created_at, size, public, discord_id, tags, slug FROM gifs ORDER BY created_at DESC LIMIT $1 OFFSET $2',
+        like ? [limit, offset, like] : [limit, offset],
       );
-      const { rows: countRows } = await pool.query('SELECT COUNT(*) AS count FROM gifs');
+      const { rows: countRows } = await pool.query(
+        like
+          ? `SELECT COUNT(*) AS count FROM gifs WHERE (tags ILIKE $1 OR COALESCE(slug, '') ILIKE $1)`
+          : 'SELECT COUNT(*) AS count FROM gifs',
+        like ? [like] : [],
+      );
       const gifs = rows.map((r) => ({
         id: r.id,
         url: base + gifUrl(r),
@@ -68,10 +80,19 @@ export async function apiGifs(ctx) {
     }
 
     const { rows } = await pool.query(
-      'SELECT id, file_path, created_at, size, tags, slug FROM gifs WHERE public = 1 ORDER BY created_at DESC LIMIT $1 OFFSET $2',
-      [limit, offset],
+      like
+        ? `SELECT id, file_path, created_at, size, tags, slug FROM gifs
+           WHERE public = 1 AND (tags ILIKE $3 OR COALESCE(slug, '') ILIKE $3)
+           ORDER BY created_at DESC LIMIT $1 OFFSET $2`
+        : 'SELECT id, file_path, created_at, size, tags, slug FROM gifs WHERE public = 1 ORDER BY created_at DESC LIMIT $1 OFFSET $2',
+      like ? [limit, offset, like] : [limit, offset],
     );
-    const { rows: countRows } = await pool.query('SELECT COUNT(*) AS count FROM gifs WHERE public = 1');
+    const { rows: countRows } = await pool.query(
+      like
+        ? `SELECT COUNT(*) AS count FROM gifs WHERE public = 1 AND (tags ILIKE $1 OR COALESCE(slug, '') ILIKE $1)`
+        : 'SELECT COUNT(*) AS count FROM gifs WHERE public = 1',
+      like ? [like] : [],
+    );
     const gifs = rows.map((r) => ({
       id: r.id,
       url: base + gifUrl(r),

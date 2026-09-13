@@ -5,6 +5,7 @@ import { parseCookies } from "./lib/session.mjs";
 import { apiConfig } from "./api/config.mjs";
 import { apiHealth } from "./api/health.mjs";
 import { apiGifs } from "./api/gifs.mjs";
+import { apiTags } from "./api/tags.mjs";
 import { apiGifItem } from "./api/gifItem.mjs";
 import { apiUpload } from "./api/upload.mjs";
 import { apiDelete } from "./api/delete.mjs";
@@ -42,6 +43,7 @@ const routes = [
   ["GET", "/api/health", apiHealth],
   ["GET", "/metrics", metricsHandler],
   ["GET", "/api/gifs", apiGifs],
+  ["GET", "/api/tags", apiTags],
   ["POST", "/api/gif/edit", apiGifEdit],
   ["POST", "/api/delete", apiDelete],
   ["POST", "/api/upload", apiUpload],
@@ -139,7 +141,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   const isStaticGif = /^\/api\/gif\/[^/.]+\.(?:gif|webp)$/.test(url.pathname);
-  if (url.pathname !== "/api/health" && url.pathname !== "/metrics" && !isStaticGif) {
+  if (url.pathname !== "/api/health" && url.pathname !== "/metrics" && url.pathname !== "/api/tags" && !isStaticGif) {
     const limited = await rateLimitMiddleware(req);
     if (limited) {
       respond(res, limited.status, limited.body, limited.headers);

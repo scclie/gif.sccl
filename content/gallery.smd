@@ -11,11 +11,16 @@
 
 ```=html
 <div id="gallery-app">
+  <div class="search-row">
+    <input type="text" id="gallery-search" placeholder="search tags / name..." autocomplete="off" spellcheck="false">
+    <button id="search-btn" class="btn">[ search ]</button>
+    <div id="search-suggestions" style="display:none"></div>
+  </div>
   <div id="user-gallery-section" style="display:none">
     <p class="section-id">> my gifs</p>
     <div id="user-gallery-grid"></div>
   </div>
-  <p class="section-id">> public gifs</p>
+  <p class="section-id" id="gallery-title">> public gifs</p>
   <div id="gallery-grid"></div>
   <div id="gallery-empty" style="display:none">
     <p>no gifs yet. <a href="/">create one</a></p>
