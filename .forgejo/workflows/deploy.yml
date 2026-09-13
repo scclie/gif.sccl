@@ -54,32 +54,31 @@ jobs:
           docker build -t "${IMG}" ./server
           docker push "${IMG}"
 
-      - name: Redeploy gifs container
+      - name: Restart gifs container
         run: |
           set -euo pipefail
-          for s in \
-            /run/secrets/gif/discord-client-id \
-            /run/secrets/gif/discord-client-secret \
-            /run/secrets/gif/turnstile-site-key \
-            /run/secrets/gif/turnstile-secret-key \
-            /run/secrets/gif-sccl/db-password ; do
-            test -s "$s" || { echo "!! missing or empty secret: $s"; exit 1; }
-          done
-          cat > /tmp/gifs.env <<EOF
-          DATABASE_URL=postgresql://gif:$(cat /run/secrets/gif-sccl/db-password)@10.69.0.1:5432/gif
-          DATA_DIR=/var/gifs
-          DISCORD_CLIENT_ID=$(cat /run/secrets/gif/discord-client-id)
-          DISCORD_CLIENT_SECRET=$(cat /run/secrets/gif/discord-client-secret)
-          DISCORD_REDIRECT_URI=https://gif.sccl.cc/api/auth/callback
-          TURNSTILE_SITE_KEY=$(cat /run/secrets/gif/turnstile-site-key)
-          TURNSTILE_SECRET_KEY=$(cat /run/secrets/gif/turnstile-secret-key)
-          USER_RATE_LIMIT=30
-          ANON_RATE_LIMIT=5
-          PORT=8083
-          EOF
           docker rm -f gifs || true
-          docker run -d --name gifs --restart unless-stopped \
-            --network host \
-            --env-file /tmp/gifs.env \
-            -v /tank/gifs:/var/gifs \
-            10.69.0.17:5000/scclie/gif:main
+
+  dashboards:
+    if: startsWith(github.server_url, 'http://10.69.0.10') || startsWith(github.server_url, 'https://git.sccl.cc')
+    runs-on: ubuntu-latest
+    needs: []
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build dashboards
+        run: bash scripts/build-dashboards.sh
+
+      - name: Validate JSON
+        run: ls grafana/out/*.json && python3 -m json.tool grafana/out/gif-sccl-metrics.json >/dev/null
+
+      - name: Install rsync
+        run: apt-get update && apt-get install -y rsync
+
+      - name: Publish dashboards
+        run: |
+          set -euo pipefail
+          DEST=/tank/mon/grafana/dashboards/gif
+          mkdir -p "$DEST"
+          rsync -a --delete grafana/out/ "$DEST/"
+          chown -R 196:997 "$DEST"

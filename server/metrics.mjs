@@ -8,6 +8,7 @@ const defs = {
   gif_delete_total: { type: 'counter', help: 'Successful deletes' },
   gif_errors_total: { type: 'counter', help: 'Errors by type' },
   gif_gifs_total: { type: 'gauge', help: 'Gifs in DB by format and visibility' },
+  gif_storage_bytes: { type: 'gauge', help: 'Total bytes currently stored (sum of gif sizes in DB)' },
   gif_users_active: { type: 'gauge', help: 'Active users (distinct discord_id in live sessions)' },
 };
 
@@ -65,6 +66,8 @@ async function collectGauges() {
   const distinct = new Set();
   for (const r of srows) { try { const p = JSON.parse(r.payload); if (p && p.discord_id) distinct.add(p.discord_id); } catch {} }
   gauges.push({ name: 'gif_users_active', labels: {}, value: distinct.size });
+  const { rows: brows } = await pool.query(`SELECT COALESCE(SUM(size),0)::int AS total FROM gifs`);
+  gauges.push({ name: 'gif_storage_bytes', labels: {}, value: Number(brows[0].total) || 0 });
   return gauges;
 }
 

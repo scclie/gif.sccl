@@ -3,3 +3,6 @@ public/
 dist/
 wrangler.toml
 server/node_modules/
+grafana/.tools/
+grafana/vendor/
+grafana/out/

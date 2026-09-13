@@ -150,9 +150,11 @@ const server = http.createServer(async (req, res) => {
   const ctx = { req, res, url, env: req.env, user: req.user, admin: req.admin };
   try {
     await matched.handler(ctx);
-    const isApi = /^\/api\/(?!gif\/)/.test(url.pathname) && url.pathname !== "/metrics";
+    const isApi = url.pathname.startsWith("/api/") && url.pathname !== "/metrics";
+    const isGifFetch = /^\/api\/gif\/.+\.(?:gif|webp)$/.test(url.pathname);
     if (isApi) {
-      inc("gif_http_requests_total", { route: url.pathname, method: req.method, status: String(res.statusCode || 500) });
+      const route = isGifFetch ? "/api/gif/:file" : url.pathname;
+      inc("gif_http_requests_total", { route, method: req.method, status: String(res.statusCode || 500) });
     }
   } catch (err) {
     console.error("[gifs]", err);

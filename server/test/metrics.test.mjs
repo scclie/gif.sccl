@@ -12,6 +12,15 @@ test('inc accumulates counters with labels', async () => {
   assert.match(out, /gif_uploads_total\{anon="0",format="gif"\} 3/);
 });
 
+test('gif file fetches counted as API route with status', async () => {
+  resetForTest();
+  inc('gif_http_requests_total', { route: '/api/gif/:file', method: 'GET', status: '200' }, 2);
+  inc('gif_http_requests_total', { route: '/api/gif/:file', method: 'GET', status: '404' });
+  const out = await renderMetrics();
+  assert.match(out, /gif_http_requests_total\{method="GET",route="\/api\/gif\/:file",status="200"\} 2/);
+  assert.match(out, /gif_http_requests_total\{method="GET",route="\/api\/gif\/:file",status="404"\} 1/);
+});
+
 test('label values escaped', async () => {
   resetForTest();
   inc('gif_errors_total', { type: 'a"b\\c' });
