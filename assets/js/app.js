@@ -330,6 +330,17 @@
       img.title = f.name;
       IL.appendChild(img);
     });
+    var hintSet = false;
+    files.forEach(function (f) {
+      f.arrayBuffer().then(function (buf) {
+        var scan = scanAnimated(new Uint8Array(buf));
+        if (!hintSet && scan && scan.animated && scan.frames > 1 && scan.totalMs > 0) {
+          hintSet = true;
+          var eff = Math.round(scan.frames / (scan.totalMs / 1000));
+          OF.value = clamp(isFinite(eff) ? eff : 10, 1, 30);
+        }
+      });
+    });
     var img = new Image();
     img.onload = function () {
       var w = img.naturalWidth || img.width;
@@ -356,6 +367,208 @@
 
   function clamp(v, lo, hi) {
     return Math.min(hi, Math.max(lo, v));
+  }
+
+  var ANIM_UNSUPPORTED_MSG =
+    "I think u're using safari, therefore only the first frame is parsed from the gif/webp. Just use a normal browser.";
+
+  function readAscii(u8, off, len) {
+    var s = "";
+    for (var i = 0; i < len && off + i < u8.length; i++)
+      s += String.fromCharCode(u8[off + i]);
+    return s;
+  }
+
+  function scanGif(u8) {
+    if (u8.length < 13 || readAscii(u8, 0, 4) !== "GIF8") return null;
+    var packed = u8[10];
+    var pos = 13;
+    if (packed & 0x80) pos += 3 * (1 << ((packed & 0x07) + 1));
+    var frames = 0;
+    var totalMs = 0;
+    var delay = 0;
+    while (pos < u8.length) {
+      var b = u8[pos++];
+      if (b === 0x3b) break;
+      if (b === 0x21) {
+        var label = pos < u8.length ? u8[pos] : 0;
+        if (label === 0xf9 && pos + 5 <= u8.length)
+          delay = u8[pos + 2] | (u8[pos + 3] << 8);
+        pos++;
+        while (pos < u8.length && u8[pos] !== 0) pos += 1 + u8[pos];
+        pos++;
+      } else if (b === 0x2c) {
+        frames++;
+        totalMs += delay * 10;
+        delay = 0;
+        if (pos + 9 > u8.length) break;
+        var ip = u8[pos + 8];
+        pos += 9;
+        if (ip & 0x80) pos += 3 * (1 << ((ip & 0x07) + 1));
+        pos++;
+        while (pos < u8.length && u8[pos] !== 0) pos += 1 + u8[pos];
+        pos++;
+      } else {
+        pos++;
+      }
+    }
+    return {
+      kind: "gif",
+      animated: frames > 1,
+      frames: frames,
+      totalMs: totalMs,
+    };
+  }
+
+  function scanWebp(u8) {
+    if (
+      u8.length < 20 ||
+      readAscii(u8, 0, 4) !== "RIFF" ||
+      readAscii(u8, 8, 4) !== "WEBP"
+    )
+      return null;
+    var pos = 12;
+    var animated = false;
+    var hasAnim = false;
+    var frameChunks = 0;
+    var totalMs = 0;
+    while (pos + 8 <= u8.length) {
+      var tag = readAscii(u8, pos, 4);
+      var sz =
+        u8[pos + 4] |
+        (u8[pos + 5] << 8) |
+        (u8[pos + 6] << 16) |
+        (u8[pos + 7] << 24);
+      var data = pos + 8;
+      if (data + sz > u8.length) break;
+      if (tag === "VP8X" && sz >= 1 && u8[data] & 0x02) animated = true;
+      if (tag === "ANIM") hasAnim = true;
+      if (tag === "ANMF" && sz >= 15) {
+        frameChunks++;
+        totalMs +=
+          u8[data + 12] | (u8[data + 13] << 8) | (u8[data + 14] << 16);
+      }
+      pos = data + sz + (sz & 1);
+    }
+    return {
+      kind: "webp",
+      animated: animated || hasAnim || frameChunks > 0,
+      frames: frameChunks,
+      totalMs: totalMs,
+    };
+  }
+
+  function scanAnimated(u8) {
+    if (readAscii(u8, 0, 4) === "GIF8") return scanGif(u8);
+    return scanWebp(u8);
+  }
+
+  function decodeFramesFromBuffer(buf, mime) {
+    return ImageDecoder.isTypeSupported(mime).then(function (ok) {
+      if (!ok) throw new Error(ANIM_UNSUPPORTED_MSG);
+      var decoder = new ImageDecoder({ data: buf, type: mime });
+      var closed = false;
+      function closeOnce() {
+        if (!closed) {
+          closed = true;
+          try {
+            decoder.close();
+          } catch (_) {}
+        }
+      }
+      return decoder.completed
+        .catch(function () {
+          closeOnce();
+          throw new Error("failed to decode " + mime);
+        })
+        .then(function () {
+          var track = decoder.tracks.selectedTrack;
+          if (!track) {
+            closeOnce();
+            return null;
+          }
+          var count = track.frameCount;
+          if (!count || count <= 1) {
+            closeOnce();
+            return null;
+          }
+          var canvas = document.createElement("canvas");
+          var ctx = canvas.getContext("2d", { willReadFrequently: true });
+          var frames = [];
+          var sized = false;
+          var chain = Promise.resolve();
+          function step(i) {
+            return decoder
+              .decode({ frameIndex: i })
+              .then(function (res) {
+                var vf = res.image;
+                var w = vf.displayWidth;
+                var h = vf.displayHeight;
+                if (!sized) {
+                  canvas.width = w;
+                  canvas.height = h;
+                  sized = true;
+                }
+                ctx.drawImage(vf, 0, 0);
+                var data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                var dMs =
+                  typeof vf.duration === "number"
+                    ? Math.round(vf.duration / 1000)
+                    : 100;
+                vf.close();
+                if (dMs < 20) dMs = 100;
+                frames.push({ data: data, delay: dMs });
+                return new Promise(function (r) {
+                  setTimeout(r, 0);
+                });
+              })
+              .catch(function (err) {
+                closeOnce();
+                throw err;
+              });
+          }
+          for (var i = 0; i < count; i++)
+            chain = chain.then(step.bind(null, i));
+          return chain.then(function () {
+            closeOnce();
+            return frames;
+          });
+        });
+    });
+  }
+
+  function extractImageFrames(file) {
+    return file.arrayBuffer().then(function (buf) {
+      var scan = scanAnimated(new Uint8Array(buf));
+      if (!scan || !scan.animated || scan.frames <= 1) return null;
+      if (!window.ImageDecoder) throw new Error(ANIM_UNSUPPORTED_MSG);
+      return decodeFramesFromBuffer(
+        buf,
+        scan.kind === "gif" ? "image/gif" : "image/webp",
+      );
+    });
+  }
+
+  function pushCroppedFrame(sink, src, sw, sh, delay) {
+    var width = clamp(
+      parseInt(document.getElementById("opt-width").value) || 480,
+      32,
+      1920,
+    );
+    var cl = Math.min(parseInt(CL.value) || 0, sw - 1);
+    var cr = Math.min(parseInt(CR.value) || 0, sw - cl - 1);
+    var ct = Math.min(parseInt(CT.value) || 0, sh - 1);
+    var cb = Math.min(parseInt(CB.value) || 0, sh - ct - 1);
+    var cw = sw - cl - cr;
+    var ch = sh - ct - cb;
+    var canvas = document.createElement("canvas");
+    var ctx = canvas.getContext("2d");
+    canvas.width = width;
+    canvas.height = Math.max(1, Math.round((width * ch) / cw));
+    ctx.drawImage(src, cl, ct, cw, ch, 0, 0, canvas.width, canvas.height);
+    sink.addFrame(ctx.getImageData(0, 0, canvas.width, canvas.height), {
+      delay: delay,
+    });
   }
 
   function createGif() {
@@ -544,43 +757,62 @@
   }
 
   function addImageFrames(sink, done, fps) {
-    var width = clamp(
-      parseInt(document.getElementById("opt-width").value) || 480,
-      32,
-      1920,
-    );
-    var delay = 1000 / fps;
-    var loaded = 0;
-    imageFiles.forEach(function (file, i) {
-      var img = new Image();
-      img.onload = function () {
-        var w = cropSrcW;
-        var h = cropSrcH;
-        if (!w || !h || !isFinite(w) || !isFinite(h)) {
-          showError("failed to load image: " + file.name);
+    var delayStatic = 1000 / fps;
+    var pending = imageFiles.length;
+    var finished = false;
+    var srcCanvas = document.createElement("canvas");
+    var srcCtx = srcCanvas.getContext("2d");
+    function checkDone() {
+      if (pending === 0 && !finished) {
+        finished = true;
+        done();
+      }
+    }
+    function fail(msg) {
+      if (finished) return;
+      finished = true;
+      showError(msg);
+      BC.disabled = false;
+      PROG.style.display = "none";
+    }
+    if (!pending) {
+      done();
+      return;
+    }
+    imageFiles.forEach(function (file) {
+      extractImageFrames(file).then(function (srcFrames) {
+        if (finished) return;
+        if (srcFrames && srcFrames.length > 0) {
+          srcFrames.forEach(function (f) {
+            srcCanvas.width = f.data.width;
+            srcCanvas.height = f.data.height;
+            srcCtx.putImageData(f.data, 0, 0);
+            pushCroppedFrame(sink, srcCanvas, f.data.width, f.data.height, f.delay);
+          });
+          pending--;
+          checkDone();
           return;
         }
-        var cl = Math.min(parseInt(CL.value) || 0, w - 1);
-        var cr = Math.min(parseInt(CR.value) || 0, w - cl - 1);
-        var ct = Math.min(parseInt(CT.value) || 0, h - 1);
-        var cb = Math.min(parseInt(CB.value) || 0, h - ct - 1);
-        var cw = w - cl - cr;
-        var ch = h - ct - cb;
-        var canvas = document.createElement("canvas");
-        var ctx = canvas.getContext("2d");
-        canvas.width = width;
-        canvas.height = Math.max(1, Math.round((width * ch) / cw));
-        ctx.drawImage(img, cl, ct, cw, ch, 0, 0, canvas.width, canvas.height);
-        sink.addFrame(ctx.getImageData(0, 0, canvas.width, canvas.height), {
-          delay: delay,
-        });
-        loaded++;
-        if (loaded >= imageFiles.length) done();
-      };
-      img.onerror = function () {
-        showError("failed to load image: " + file.name);
-      };
-      img.src = URL.createObjectURL(file);
+        var img = new Image();
+        img.onload = function () {
+          if (finished) return;
+          var w = cropSrcW;
+          var h = cropSrcH;
+          if (!w || !h || !isFinite(w) || !isFinite(h)) {
+            fail("failed to load image: " + file.name);
+            return;
+          }
+          pushCroppedFrame(sink, img, w, h, delayStatic);
+          pending--;
+          checkDone();
+        };
+        img.onerror = function () {
+          fail("failed to load image: " + file.name);
+        };
+        img.src = URL.createObjectURL(file);
+      }).catch(function (err) {
+        fail((err && err.message) || "failed to decode image: " + file.name);
+      });
     });
   }
 

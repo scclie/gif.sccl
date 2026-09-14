@@ -7,7 +7,7 @@ minimal GIF maker - client-side encoding, no tracking.
 [![uptime 24h](https://status.sccl.cc/api/v1/endpoints/apps_gif-sccl-api/uptimes/24h/badge.svg)](https://status.sccl.cc/endpoints/apps_gif-sccl-api)
 [![uptime 7d](https://status.sccl.cc/api/v1/endpoints/apps_gif-sccl-api/uptimes/7d/badge.svg)](https://status.sccl.cc/endpoints/apps_gif-sccl-api)
 
-- input: video (mp4, webm, mov, avi) or images (png, jpg, webp) - drag, click, or paste
+- input: video (mp4, webm, mov, avi) or images (png, jpg, gif, webp) - including animated gif/webp - drag, click, or paste
 - output: webp by default (libwebp wasm), gif selectable ([gif.js](https://github.com/jnordberg/gif.js)) - all client-side, no server cpu
 - trim: set start/end for video, visual crop with draggable handles
 - links: direct links to .webp / .gif

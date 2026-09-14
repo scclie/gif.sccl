@@ -13,7 +13,7 @@
 <div id="app">
   <div id="drop-zone">
     <p><span class="symbol">+</span> drop video or images here</p>
-    <p class="hint">or click to browse &nbsp;|&nbsp; or paste from clipboard &nbsp;|&nbsp; mp4, webm, mov, avi, png, jpg, webp</p>
+    <p class="hint">or click to browse &nbsp;|&nbsp; or paste from clipboard &nbsp;|&nbsp; mp4, webm, mov, avi, png, jpg, gif, webp (animated gif/webp supported)</p>
     <input type="file" id="file-input" accept="video/*,image/*" multiple style="display:none">
   </div>
 
