@@ -34,16 +34,22 @@ export async function apiGifs(ctx) {
   if (url.searchParams.get('mine') === 'true' && user) {
     const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get('limit')) || 6));
     const offset = Math.max(0, parseInt(url.searchParams.get('offset')) || 0);
+    const q = (url.searchParams.get('q') || '').trim();
+    const like = q ? '%' + escapeIlike(q) + '%' : null;
     const provider = user.provider;
     const subject = user.subject || user.discord_id;
     try {
+      const where = like
+        ? 'owner_provider = $1 AND owner_subject = $2 AND (tags ILIKE $3 OR COALESCE(slug, \'\') ILIKE $3)'
+        : 'owner_provider = $1 AND owner_subject = $2';
+      const whereParams = like ? [provider, subject, like] : [provider, subject];
       const { rows } = await pool.query(
-        'SELECT id, file_path, created_at, size, public, discord_id, tags, slug, delete_token FROM gifs WHERE owner_provider = $1 AND owner_subject = $2 ORDER BY created_at DESC LIMIT $3 OFFSET $4',
-        [provider, subject, limit, offset],
+        `SELECT id, file_path, created_at, size, public, discord_id, tags, slug, delete_token FROM gifs WHERE ${where} ORDER BY created_at DESC LIMIT $${whereParams.length + 1} OFFSET $${whereParams.length + 2}`,
+        [...whereParams, limit, offset],
       );
       const { rows: countRows } = await pool.query(
-        'SELECT COUNT(*) AS count FROM gifs WHERE owner_provider = $1 AND owner_subject = $2',
-        [provider, subject],
+        `SELECT COUNT(*) AS count FROM gifs WHERE ${where}`,
+        whereParams,
       );
       const gifs = rows.map((r) =>
         rowToGif(base, r, { public: !!r.public, delete_token: r.delete_token }),

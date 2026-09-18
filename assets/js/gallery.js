@@ -37,7 +37,9 @@
       myOffset = 0;
       userGrid.innerHTML = "";
     }
-    return fetch("/api/gifs?mine=true&limit=6&offset=" + myOffset, {
+    var mineUrl = "/api/gifs?mine=true&limit=6&offset=" + myOffset;
+    if (search) mineUrl += "&q=" + encodeURIComponent(search);
+    return fetch(mineUrl, {
       credentials: "same-origin",
     })
       .then(function (r) {
@@ -484,6 +486,7 @@
     empty.style.display = "none";
     galleryTitle.textContent = "> results for '" + search + "'";
     showClearButton();
+    if (isUser) loadMine(true);
     loadGifs();
   }
 
@@ -502,6 +505,16 @@
     if (searchClear) searchClear.style.display = "none";
   }
 
+  function reloadGallery() {
+    if (isUser) {
+      loadMine(true).then(function () {
+        loadGifs();
+      });
+    } else {
+      startOver();
+    }
+  }
+
   function clearSearch() {
     search = null;
     searchInput.value = "";
@@ -512,7 +525,7 @@
     if (p) p.innerHTML = 'no gifs yet. <a href="/">create one</a>';
     empty.style.display = "none";
     reset();
-    startOver();
+    reloadGallery();
   }
 
   searchInput.addEventListener("input", function () {
