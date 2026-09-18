@@ -191,12 +191,17 @@
       }
       function showUser(u, ad) {
         a.style.display = "flex";
+        var avatar = "";
+        if (u.discord_id && u.avatar) {
+          avatar =
+            '<img class="avatar" src="https://cdn.discordapp.com/avatars/' +
+            u.discord_id +
+            "/" +
+            u.avatar +
+            '.png" alt="">';
+        }
         a.innerHTML =
-          '<img class="avatar" src="https://cdn.discordapp.com/avatars/' +
-          u.discord_id +
-          "/" +
-          u.avatar +
-          '.png" alt="">' +
+          avatar +
           u.username +
           (ad ? ' <span style="color:var(--nord11)">(admin)</span>' : "");
         b.style.display = "none";
@@ -218,7 +223,7 @@
           });
       });
       b.addEventListener("click", function () {
-        window.location.href = "/api/auth/discord";
+        window.location.href = "/login";
       });
       fetch("/api/auth/me", { credentials: "same-origin" })
         .then(function (r) {

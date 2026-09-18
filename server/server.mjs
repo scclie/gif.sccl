@@ -49,6 +49,8 @@ const routes = [
   ["POST", "/api/upload", apiUpload],
   ["GET", /^\/api\/gif\/([^/.]+)\.(?:gif|webp)(?:\.gif)?$/, apiGifItem],
   ["GET", "/api/auth/discord", apiAuth.discord],
+  ["GET", "/api/auth/kanidm", apiAuth.kanidm],
+  ["GET", "/api/auth/kanidm/callback", apiAuth.kanidmCallback],
   ["GET", "/api/auth/callback", apiAuth.callback],
   ["POST", "/api/auth/logout", apiAuth.logout],
   ["GET", "/api/auth/me", apiAuth.me],
@@ -71,7 +73,7 @@ async function sessionMiddleware(req) {
     );
     if (!rows.length) return;
     const session = JSON.parse(rows[0].payload);
-    if (!session.discord_id) return;
+    if (!session.discord_id && !session.subject) return;
     req.user = session;
     req.admin = !!session.admin;
   } catch {}

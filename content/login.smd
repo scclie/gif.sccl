@@ -1,0 +1,25 @@
+---
+.title = "login — gif.sccl.cc",
+.date = .date("2026-10-07T00:00:00"),
+.authors = ["sccl"],
+.layout = "page.shtml",
+.custom = .{
+    .tab = "login",
+    .description = "Sign in to gif.sccl.cc",
+},
+---
+
+```=html
+<div style="display:flex;flex-direction:column;gap:.75rem;max-width:26rem">
+  <p class="hint">choose how to sign in:</p>
+  <a class="btn" href="/api/auth/kanidm" style="text-align:center;text-decoration:none">[ sign in with kanidm ]</a>
+  <a class="btn" href="/api/auth/discord" style="text-align:center;text-decoration:none">[ sign in with discord ]</a>
+  <p class="hint">signing in lets you upload without the cf captcha and with higher limits.</p>
+  <p id="login-error" class="hint" style="display:none;color:var(--nord11)">login failed, try again</p>
+</div>
+<script>
+  if (new URLSearchParams(location.search).get("error")) {
+    document.getElementById("login-error").style.display = "";
+  }
+</script>
+```

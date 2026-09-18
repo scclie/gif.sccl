@@ -108,7 +108,7 @@
     </div>
     <div id="turnstile-widget" style="margin-top:.5rem"></div>
     <div>
-    <span id="auth-prompt" class="hint"><a href="/api/auth/discord">login with discord</a> for uploading without cf captcha and higher limits</span>
+    <span id="auth-prompt" class="hint"><a href="/login">login</a> for uploading without cf captcha and higher limits</span>
     </div>
     <div id="save-result" style="display:none">
       <p>permanent url: <a id="gif-url"></a></p>
