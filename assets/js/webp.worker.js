@@ -1,5 +1,14 @@
 "use strict";
-import Module from "./vendor/webp-wasm.js";
+
+// version query inherited from the worker URL (/js/webp.worker.js?v=<sha>);
+// propagate it to the emscripten glue + wasm so they aren't immutable-cached
+var V = (self.location && self.location.search) || "";
+
+function loadModule() {
+  return import("./vendor/webp-wasm.js" + V).then(function (m) {
+    return m.default;
+  });
+}
 
 function patchAnimationFlag(buf) {
   var u = new Uint8Array(buf);
@@ -16,7 +25,15 @@ function patchAnimationFlag(buf) {
 }
 
 function encode(msg) {
-  return Module().then(function (module) {
+  return loadModule()
+    .then(function (Module) {
+      return Module({
+        locateFile: function (path) {
+          return path + V;
+        },
+      });
+    })
+    .then(function (module) {
     var frames = msg.frames || [];
     var frameVector = new module.VectorWebPAnimationFrame();
     var q = typeof msg.quality === "number" ? msg.quality : 80;

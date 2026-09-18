@@ -5,17 +5,24 @@ import { json } from '../server.mjs';
 import { inc } from '../metrics.mjs';
 
 export async function apiDelete(ctx) {
-  const { req, res, user: _user, admin, env } = ctx;
+  const { req, res, user, admin, env } = ctx;
   try {
     const body = await readJson(req);
     const id = body.id;
     const deleteToken = body.delete_token;
     if (!id) return json(res, { error: 'id is required' }, 400);
-    if (!admin && !deleteToken) return json(res, { error: 'delete_token required' }, 400);
 
-    const { rows } = await pool.query('SELECT delete_token, file_path FROM gifs WHERE id = $1', [id]);
+    const { rows } = await pool.query(
+      'SELECT delete_token, file_path, owner_provider, owner_subject FROM gifs WHERE id = $1',
+      [id],
+    );
     if (!rows.length) return json(res, { error: 'gif not found' }, 404);
-    if (!admin && rows[0].delete_token !== deleteToken) return json(res, { error: 'invalid delete token' }, 403);
+    const isOwner =
+      user &&
+      rows[0].owner_provider === user.provider &&
+      rows[0].owner_subject === (user.subject || user.discord_id);
+    if (!admin && !isOwner && rows[0].delete_token !== deleteToken)
+      return json(res, { error: 'invalid delete token' }, 403);
 
     await pool.query('DELETE FROM gifs WHERE id = $1', [id]);
     await unlink(path.join(env.DATA_DIR || '/var/gifs', rows[0].file_path)).catch(() => {});

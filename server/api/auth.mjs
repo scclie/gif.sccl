@@ -206,6 +206,7 @@ export const apiAuth = {
       const sessId = randomUUID();
       const session = {
         provider: 'discord',
+        subject: userData.id,
         discord_id: userData.id,
         username: userData.global_name || userData.username,
         avatar: userData.avatar,

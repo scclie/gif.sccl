@@ -26,18 +26,58 @@
   try {
     localTokens = JSON.parse(localStorage.getItem("gif_tokens") || "{}");
   } catch (e) {}
-  var ownIds = {}; // IDs owned by current user (populated by ?tokens= fetch)
+  var ownIds = {}; // IDs owned by current user (account or delete tokens)
+  var rendered = {};
+  var isUser = false;
+  var myOffset = 0;
+  var myTotal = 0;
 
-  window.addEventListener("gif-auth", function (e) {
-    var d = e.detail;
-    if (d && d.admin && !isAdmin) {
-      isAdmin = true;
-      addAdminToggle();
-      redrawButtons();
+  function loadMine(resetFlag) {
+    if (resetFlag) {
+      myOffset = 0;
+      userGrid.innerHTML = "";
     }
-  });
+    return fetch("/api/gifs?mine=true&limit=6&offset=" + myOffset, {
+      credentials: "same-origin",
+    })
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (data) {
+        if (!data.gifs) return;
+        data.gifs.forEach(function (g) {
+          ownIds[g.id] = true;
+          if (g.delete_token) localTokens[g.id] = g.delete_token;
+          addGif(g, userGrid);
+        });
+        myOffset += data.gifs.length;
+        myTotal = data.total != null ? Number(data.total) : myOffset;
+        if (myTotal > 0) userSection.style.display = "block";
+        redrawButtons();
+        renderMineMore();
+      })
+      .catch(function () {});
+  }
+
+  function renderMineMore() {
+    var el = document.getElementById("my-gallery-footer");
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "my-gallery-footer";
+      userSection.appendChild(el);
+    }
+    if (myOffset < myTotal) {
+      el.innerHTML = '<button>[ load more ]</button>';
+      el.querySelector("button").addEventListener("click", function () {
+        loadMine(false);
+      });
+    } else {
+      el.innerHTML = "";
+    }
+  }
 
   function addAdminToggle() {
+    if (document.getElementById("admin-toggle")) return;
     var nav = document.querySelector(".nav");
     if (!nav) return;
     var toggle = document.createElement("div");
@@ -65,18 +105,43 @@
     hasMore = true;
     loadingFlag = false;
     ownIds = {};
+    rendered = {};
+    myOffset = 0;
+    myTotal = 0;
     var ft = document.getElementById("gallery-footer");
     if (ft) ft.innerHTML = "";
+    var mf = document.getElementById("my-gallery-footer");
+    if (mf) mf.innerHTML = "";
   }
 
   function start() {
-    startOver();
+    // resolve auth first so my-gifs vs public split is deterministic
+    fetch("/api/auth/me", { credentials: "same-origin" })
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (d) {
+        if (d && d.user) {
+          isUser = true;
+          if (d.admin) {
+            isAdmin = true;
+            addAdminToggle();
+          }
+          // logged in: my gifs come from the account, not localStorage tokens
+          return loadMine(true).then(loadGifs);
+        }
+        // anonymous: keep the delete-token based my gifs (editable by the anon)
+        return startOver();
+      })
+      .catch(function () {
+        startOver();
+      });
   }
 
   function startOver() {
     var tokens = Object.keys(localTokens);
     if (tokens.length) {
-      fetch("/api/gifs?tokens=" + tokens.join(","))
+      fetch("/api/gifs?tokens=" + tokens.join(","), { credentials: "same-origin" })
         .then(function (r) {
           return r.json();
         })
@@ -84,7 +149,7 @@
           if (data.gifs) {
             data.gifs.forEach(function (g) {
               ownIds[g.id] = true;
-              addGif(g);
+              addGif(g, userGrid);
             });
           }
           loadGifs();
@@ -104,7 +169,14 @@
     errorEl.style.display = "none";
     var url = "/api/gifs?page=" + page + "&limit=24";
     if (search) url += "&q=" + encodeURIComponent(search);
-    if (showAll && isAdmin) url += "&all=true";
+    if (showAll && isAdmin) {
+      url += "&all=true";
+    } else if (isUser) {
+      url += "&exclude_mine=true";
+    } else {
+      var tk = Object.keys(localTokens);
+      if (tk.length) url += "&exclude_tokens=" + tk.join(",");
+    }
     fetch(url, { credentials: "same-origin" })
       .then(function (r) {
         return r.json();
@@ -126,9 +198,10 @@
         }
         empty.style.display = "none";
         data.gifs.forEach(function (g) {
-          if (!ownIds[g.id]) addGif(g);
-        }); // skip owned — already rendered
-        hasMore = data.gifs.length === 24;
+          addGif(g, grid);
+        });
+        var seen = (page - 1) * 24 + data.gifs.length;
+        hasMore = data.total != null ? seen < Number(data.total) : data.gifs.length === 24;
         page++;
         updateFooter();
       })
@@ -141,7 +214,11 @@
       });
   }
 
-  function addGif(g) {
+  function addGif(g, target) {
+    var container = target || grid;
+    var key = (container === userGrid ? "u:" : "g:") + g.id;
+    if (rendered[key]) return;
+    rendered[key] = true;
     var item = document.createElement("div");
     item.className = "gallery-item";
     var img = document.createElement("a");
@@ -186,18 +263,12 @@
     item.appendChild(btnRow);
     item._gif = g;
     item._btnRow = btnRow;
-    if (isAdmin || localTokens[g.id]) {
+    if (isAdmin || ownIds[g.id] || localTokens[g.id]) {
       addOwnButtons(g, item, btnRow);
       item._ownBtns = true;
     }
-    if (search) {
-      grid.appendChild(item);
-    } else if (ownIds[g.id] || localTokens[g.id]) {
-      userGrid.appendChild(item);
-      userSection.style.display = "block";
-    } else {
-      grid.appendChild(item);
-    }
+    container.appendChild(item);
+    if (container === userGrid) userSection.style.display = "block";
   }
 
   function redrawButtons() {

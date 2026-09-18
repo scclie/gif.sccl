@@ -680,7 +680,7 @@
         workers: 2,
         quality: quality,
         width: width,
-        workerScript: "/js/gif.worker.js",
+        workerScript: "/js/gif.worker.js?v=" + (window.BUILD_SHA || String(Date.now())),
         dither: dither,
         colors: colors,
         repeat: repeat,

@@ -63,8 +63,8 @@ export async function apiUpload(ctx) {
 
     try {
       await pool.query(
-        'INSERT INTO gifs (id, discord_id, public, created_at, size, delete_token, tags, slug, file_path) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)',
-        [id, user ? user.discord_id : null, isPublic ? 1 : 0, new Date().toISOString(), file.length, deleteToken, tags, slugId, id + '.' + ext],
+        'INSERT INTO gifs (id, discord_id, owner_provider, owner_subject, public, created_at, size, delete_token, tags, slug, file_path) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)',
+        [id, user ? user.discord_id || null : null, user ? user.provider : null, user ? (user.subject || user.discord_id) : null, isPublic ? 1 : 0, new Date().toISOString(), file.length, deleteToken, tags, slugId, id + '.' + ext],
       );
     } catch (e) {
       if (e.code === '23505' && /slug/.test(e.detail || '')) {
