@@ -29,7 +29,7 @@ function encode(msg) {
     .then(function (Module) {
       return Module({
         locateFile: function (path) {
-          return path + V;
+          return "./vendor/" + path + V;
         },
       });
     })
