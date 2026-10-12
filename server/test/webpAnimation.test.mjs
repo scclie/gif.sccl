@@ -43,6 +43,33 @@ test('converts 1 fram webp into 2 frames', () => {
   assert.equal(chunks.find((part) => part.tag === 'VP8X').data[0] & 0x20, 0);
 });
 
+test('wraps a static webp in two identical animation frames', () => {
+  const vp8x = Buffer.from([0x20, 0, 0, 0, 1, 0, 0, 2, 0, 0]);
+  const image = Buffer.from([0x9d, 0x01, 0x2a, 0x02]);
+  const input = riff(chunk('VP8X', vp8x), chunk('VP8 ', image));
+
+  const output = makeTwoFrameWebp(input);
+  const chunks = chunksOf(output);
+  const frames = chunks.filter((part) => part.tag === 'ANMF');
+
+  assert.equal(frames.length, 2);
+  assert.equal(chunks.find((part) => part.tag === 'VP8X').data[0] & 0x02, 0x02);
+  assert.equal(chunks.find((part) => part.tag === 'VP8X').data[0] & 0x20, 0);
+  assert.equal(frames[0].data.toString('ascii', 16, 20), 'VP8 ');
+});
+
+test('wraps a bare vp8 webp in two animation frames', () => {
+  const image = Buffer.from([0, 0, 0, 0x9d, 0x01, 0x2a, 0x02, 0, 0x03, 0]);
+  const input = riff(chunk('VP8 ', image));
+
+  const output = makeTwoFrameWebp(input);
+  const chunks = chunksOf(output);
+
+  assert.deepEqual(chunks.map((part) => part.tag), ['VP8X', 'ANIM', 'ANMF', 'ANMF']);
+  assert.equal(chunks.find((part) => part.tag === 'VP8X').data[0] & 0x02, 0x02);
+  assert.equal(chunks.filter((part) => part.tag === 'ANMF')[0].data.toString('ascii', 16, 20), 'VP8 ');
+});
+
 test('refuses a malformed animation w/o VP8X', () => {
   const input = riff(chunk('ANMF', Buffer.alloc(20)));
 

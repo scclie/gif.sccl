@@ -31,28 +31,90 @@ function assemble(chunks) {
   return Buffer.concat([header, payload]);
 }
 
+function staticCanvasVp8x(chunks) {
+  const image = chunks.find((part) => part.tag === 'VP8 ' || part.tag === 'VP8L');
+  if (!image) return null;
+
+  let width;
+  let height;
+  let alpha = chunks.some((part) => part.tag === 'ALPH');
+  if (image.tag === 'VP8 ') {
+    if (image.data.length < 10 || !image.data.subarray(3, 6).equals(Buffer.from([0x9d, 0x01, 0x2a]))) return null;
+    width = image.data.readUInt16LE(6) & 0x3fff;
+    height = image.data.readUInt16LE(8) & 0x3fff;
+  } else {
+    if (image.data.length < 5 || image.data[0] !== 0x2f) return null;
+    const bits = image.data.readUInt32LE(1);
+    width = (bits & 0x3fff) + 1;
+    height = ((bits >>> 14) & 0x3fff) + 1;
+    alpha ||= !!((bits >>> 28) & 1);
+  }
+  if (!width || !height) return null;
+
+  const vp8x = Buffer.alloc(10);
+  if (alpha) vp8x[0] |= 0x10;
+  vp8x.writeUIntLE(width - 1, 4, 3);
+  vp8x.writeUIntLE(height - 1, 7, 3);
+  return vp8x;
+}
+
+function animatedVp8x(chunks) {
+  const source = chunks.find((part) => part.tag === 'VP8X');
+  const vp8x = source && source.data.length >= 10 ? Buffer.from(source.data) : staticCanvasVp8x(chunks);
+  if (!vp8x) return null;
+
+  // 0x02 - WebP animation feature bit
+  vp8x[0] |= 0x02;
+  // 0x20 - ICC profile.
+  if (!chunks.some((part) => part.tag === 'ICCP')) vp8x[0] &= ~0x20;
+  return vp8x;
+}
+
+function makeFrame(vp8x, imageChunks) {
+  const header = Buffer.alloc(16);
+  vp8x.copy(header, 6, 4, 7);
+  vp8x.copy(header, 9, 7, 10);
+  header.writeUIntLE(100, 12, 3);
+  header[15] = 0x02;
+  return Buffer.concat([header, ...imageChunks.map((part) => chunk(part.tag, part.data))]);
+}
+
+function wrapStaticWebp(chunks, vp8x) {
+  const imageChunks = chunks.filter((part) => ['ALPH', 'VP8 ', 'VP8L'].includes(part.tag));
+  if (!imageChunks.some((part) => part.tag === 'VP8 ' || part.tag === 'VP8L')) return null;
+
+  const metadata = chunks.filter((part) => ['ICCP', 'EXIF', 'XMP '].includes(part.tag));
+  const frame = makeFrame(vp8x, imageChunks);
+  return assemble([
+    { tag: 'VP8X', data: vp8x },
+    ...metadata.filter((part) => part.tag === 'ICCP'),
+    { tag: 'ANIM', data: Buffer.alloc(6) },
+    { tag: 'ANMF', data: frame },
+    { tag: 'ANMF', data: Buffer.from(frame) },
+    ...metadata.filter((part) => part.tag !== 'ICCP'),
+  ]);
+}
+
 /**
- * Duplicates a lone animation frame. Discord treats an animation with one
- * ANMF frame as a static image; two identical frames retain the same pixels
- * while making the file unambiguously animated.
+ * discord treats a one-frame webp as static. This returns a two-frame webp
  */
 export function makeTwoFrameWebp(input) {
   const { data, chunks } = parseWebp(input);
   const frames = chunks.filter((part) => part.tag === 'ANMF');
-  if (frames.length !== 1) return data;
-  if (!chunks.some((part) => part.tag === 'VP8X')) {
-    throw new Error('one-frame animation is missing VP8X');
+  if (frames.length >= 2) return data;
+
+  const vp8x = animatedVp8x(chunks);
+  if (!vp8x) {
+    if (frames.length === 1) throw new Error('one-frame animation is missing VP8X');
+    return data;
   }
+
+  if (frames.length === 0) return wrapStaticWebp(chunks, vp8x) || data;
 
   const output = [];
   let foundAnimationHeader = false;
   for (const part of chunks) {
     if (part.tag === 'VP8X') {
-      if (part.data.length < 1) throw new Error('invalid VP8X chunk');
-      const vp8x = Buffer.from(part.data);
-      // 0x02 is the WebP animation feature bit. 0x20 is ICC profile.
-      vp8x[0] |= 0x02;
-      if (!chunks.some((candidate) => candidate.tag === 'ICCP')) vp8x[0] &= ~0x20;
       output.push({ tag: part.tag, data: vp8x });
       continue;
     }
