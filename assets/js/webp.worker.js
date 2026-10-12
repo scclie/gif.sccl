@@ -10,20 +10,6 @@ function loadModule() {
   });
 }
 
-function patchAnimationFlag(buf) {
-  var u = new Uint8Array(buf);
-  var pos = 12;
-  while (pos + 8 <= u.length) {
-    var tag = String.fromCharCode(u[pos], u[pos + 1], u[pos + 2], u[pos + 3]);
-    var sz = u[pos + 4] | (u[pos + 5] << 8) | (u[pos + 6] << 16) | (u[pos + 7] << 24);
-    if (tag === "VP8X") {
-      u[pos + 8] |= 0x20;
-      break;
-    }
-    pos += 8 + sz + (sz & 1);
-  }
-}
-
 function encode(msg) {
   return loadModule()
     .then(function (Module) {
@@ -35,6 +21,9 @@ function encode(msg) {
     })
     .then(function (module) {
     var frames = msg.frames || [];
+    // discord shows 1 frame webp as statc image (not a gif, u cant save as favorites)
+    // visually unchanged while making the encoded webp a real two-frame loop
+    if (frames.length === 1) frames = [frames[0], frames[0]];
     var frameVector = new module.VectorWebPAnimationFrame();
     var q = typeof msg.quality === "number" ? msg.quality : 80;
     frames.forEach(function (f) {
@@ -45,9 +34,7 @@ function encode(msg) {
         has_config: true,
       });
     });
-    var buf = module.encodeAnimation(msg.width, msg.height, true, frameVector);
-    if (buf && buf.length) patchAnimationFlag(buf);
-    return buf;
+    return module.encodeAnimation(msg.width, msg.height, true, frameVector);
   });
 }
 
